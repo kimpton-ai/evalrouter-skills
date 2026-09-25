@@ -5,14 +5,14 @@ behind a reviewed quote and spending cap, read and export results, and package
 your own benchmark.
 
 Read [SKILL.md](skills/evalrouter/SKILL.md) on GitHub, or fetch the
-[raw Markdown](https://raw.githubusercontent.com/kimpton-ai/skills/main/skills/evalrouter/SKILL.md).
+[raw Markdown](https://raw.githubusercontent.com/kimpton-ai/evalrouter-skills/main/skills/evalrouter/SKILL.md).
 
 ## Install
 
 ### Claude Code plugin
 
 ```bash
-claude plugin marketplace add kimpton-ai/skills
+claude plugin marketplace add kimpton-ai/evalrouter-skills
 claude plugin install evalrouter@kimpton-ai
 ```
 
@@ -21,7 +21,7 @@ In Claude Code you can invoke the skill explicitly with `/evalrouter:evalrouter`
 ### Other agents (skills.sh)
 
 ```bash
-npx skills add kimpton-ai/skills --skill evalrouter
+npx skills add kimpton-ai/evalrouter-skills --skill evalrouter
 ```
 
 Select your agent when prompted. Installation is project-local by default; add
