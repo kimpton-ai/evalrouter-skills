@@ -1,0 +1,99 @@
+# Publish your own benchmark
+
+> **Version gate.** The `benchmark` command group is newer than some
+> 0.2.0 builds. Run `evalrouter benchmark --help`; if it is not recognised,
+> stop and tell the user their installed CLI does not support benchmark
+> publishing yet. Do not fall back to raw HTTP.
+
+## 1. Install the offline extra
+
+`init`, `validate` and `bundle` need the version-matched validator extra. The
+network commands (`submit`, `status`, `inspect`, `grant`, `revoke`) do not.
+
+```sh
+uv tool install --python 3.12 "kimpton-evalrouter-sdk[benchmark]"
+```
+
+Without it those three commands stop with `benchmark_extra_required` and print
+the exact install string to use.
+
+## 2. Draft
+
+```sh
+evalrouter benchmark init ./my-benchmark --namespace NAMESPACE --name my-benchmark --template text
+```
+
+`--namespace` and `--name` are required. `--template` is `text` (default,
+declarative exact-match scoring), `custom-scorer` or `multi-turn` (both sandboxed,
+with an `evaluation.py` entrypoint and a dependency lock). The destination must
+not already exist.
+
+The draft is **synthetic** and grants no rights. It contains `evalrouter.json`
+(the package manifest, schema `evalrouter.package.v1`) plus role-tagged files:
+
+| File | Role | The user must replace it with |
+| --- | --- | --- |
+| `tasks.jsonl` | dataset | Real tasks (`evalrouter.tasks.v1`: `id`, `input`, `target`) |
+| `fixtures.jsonl` | fixtures | Grading fixtures: known outputs and the score each must get |
+| `RIGHTS.txt` | license | The actual code, data and test licences and attribution |
+| `README.md` | documentation | What the benchmark measures, maintainer, limits |
+| `evaluation.py`, `dependencies.lock` | code, dependencies | Only for sandbox templates: a real scorer and hashed, resolved deps |
+
+In `evalrouter.json`, the user must also set title, description, authors,
+maintainer, `rights` entries (the draft uses `LicenseRef-NotGranted` and
+`unknown` permissions), dataset split and task count, limits, metrics and
+limitations, and review the `"synthetic": true` flag once the content is real
+(check the current docs or `validate` output for how it is treated).
+
+There is **no automatic importer** from Hugging Face or GitHub in the CLI today.
+The user supplies material as local files. Do not claim otherwise; if they only
+have a dataset URL, help them download and convert it themselves, having checked
+the licence permits it. Never include credentials or private customer data.
+
+## 3. Validate and bundle (offline)
+
+```sh
+evalrouter benchmark validate ./my-benchmark
+evalrouter benchmark bundle ./my-benchmark --output my-benchmark.zip
+```
+
+Nothing is executed or sent. `validate` reports validity, package and component
+SHA-256, task count and warnings. After editing files, file-table hashes in
+`evalrouter.json` must match; re-run `validate` until it passes. `bundle` never
+overwrites an existing `--output`. Local validation is not platform admission.
+
+## 4. Submit (network, needs approval)
+
+Requirements: `EVALROUTER_API_KEY` / `EVALROUTER_WORKSPACE_ID` set, and a
+**verified namespace** in the workspace whose slug equals the package's
+`namespace` (otherwise `namespace_not_found`). Confirm with the human before
+submitting.
+
+```sh
+evalrouter benchmark submit my-benchmark.zip --wait
+```
+
+The upload is resumable: by default the idempotency key derives from the bundle
+digest, so re-running submit on the same file resumes rather than duplicates.
+`--idempotency-key` overrides it. With `--wait`, the CLI polls preparation until
+`succeeded`, `failed` or `cancelled` (exit 0, 1, 4). Interrupting the wait cancels
+nothing on the server. Accepted preparation is not qualification or admission.
+
+## 5. Inspect and share
+
+```sh
+evalrouter benchmark status PACKAGE_ID
+evalrouter benchmark inspect PACKAGE_ID
+evalrouter benchmark grant PACKAGE_ID --workspace GRANTEE_WORKSPACE_ID --reason "Shared for evaluation" --permissions discover,execute
+evalrouter benchmark revoke PACKAGE_ID --workspace GRANTEE_WORKSPACE_ID --reason "Access ended"
+```
+
+`status` shows the package lifecycle; `inspect` shows the compiled protocol
+(protocol and component digests, compiler version, execution class). Grants are
+issued against the compiled protocol for one grantee workspace, with a recorded
+reason. `--permissions` is `discover`, `execute` or both (default both).
+Revoking blocks new quotes from that workspace.
+
+Once qualified and granted, the benchmark appears through `evalrouter catalog`
+for permitted workspaces and is quoted and run with the normal
+quote → approval → run flow in SKILL.md section B.

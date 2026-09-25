@@ -1,0 +1,15 @@
+{
+  "name": "kimpton-ai",
+  "description": "Agent skills for evaluating models and publishing benchmarks with EvalRouter.",
+  "owner": {
+    "name": "Kimpton AI",
+    "url": "https://evalrouter.ai"
+  },
+  "plugins": [
+    {
+      "name": "evalrouter",
+      "description": "Run EvalRouter benchmarks behind a reviewed quote and spending cap, read and export results, and package your own benchmark.",
+      "source": "./"
+    }
+  ]
+}

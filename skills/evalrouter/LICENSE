@@ -1,0 +1,11 @@
+LICENSE NOT YET DECIDED
+
+This repository is a draft. Kimpton AI, Inc. has not chosen a license for these
+skill files. Until a license is chosen and this file is replaced, no permission
+to use, copy, modify or distribute is granted.
+
+Decide before publishing: an open license (for example MIT or Apache-2.0) is
+typical for agent skills so that `npx skills add` and plugin installs are
+unambiguously permitted. Note that the EvalRouter CLI itself is distributed
+under the proprietary Kimpton EvalRouter SDK License; this repository contains
+only instructions, not the CLI.
