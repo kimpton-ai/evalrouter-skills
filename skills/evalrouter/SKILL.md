@@ -5,10 +5,12 @@ description: >
   terminal. Use when the user wants to run a benchmark against a model, compare
   models on an evaluation, get a quote or spending cap for an eval run, check
   results or export an EvalRouter report, set up the evalrouter CLI or its
-  workspace API key, or package, validate and publish their own benchmark on
-  EvalRouter. Covers catalog discovery, quote.json, coverage and concurrency,
-  approval of spending caps before paid work, run/wait/results/export, and
-  benchmark init/validate/bundle/submit.
+  workspace API key, or add their own benchmark to EvalRouter: check whether it
+  is already in the catalog, whether their dataset can run on EvalRouter, draft
+  a benchmark manifest and request that it be added. Covers catalog discovery,
+  quote.json, coverage and concurrency, approval of spending caps before paid
+  work, run/wait/results/export, and benchmark readiness checks (pinned public
+  sources, sha256, existing lm-eval or Inspect task, license allowlist).
 ---
 
 # Evaluate with EvalRouter
@@ -36,7 +38,8 @@ acting, and run `evalrouter <command> --help` when you need exact flags:
 
 1. **Never start paid work without explicit human approval of a specific quote.**
    `evalrouter run`, `evalrouter agent-builds create` and `evalrouter benchmark submit`
-   create server-side work. Show the quote first, then stop and wait for a clear
+   create server-side work. Preparing a benchmark never justifies a paid run:
+   any run needs its own quote, cap and approval. Show the quote first, then stop and wait for a clear
    "yes, run quote Q under cap $X". Silence, a general "go ahead" given before the
    quote existed, or approval of a different quote does not count.
 2. **Never print, paste, log or commit credentials.** The workspace key lives in
@@ -179,37 +182,45 @@ and refuse to overwrite unless `--overwrite` is passed. Use the result's integer
 terminal status, completed versus missing work, errors and billing state with
 the scores.
 
-## C. Publish your own benchmark
+## C. Add your own benchmark
 
-> Requires a CLI release that includes the `benchmark` command group.
-> It is not in every 0.2.0 build: check `evalrouter benchmark --help` first and
-> stop if the group is missing. `init`, `validate` and `bundle` also need the
-> version-matched extra: `uv tool install --python 3.12 "kimpton-evalrouter-sdk[benchmark]"`.
+Use this when the user wants to add or publish a benchmark, write a benchmark
+manifest, or check whether their dataset can run on EvalRouter.
 
-```sh
-evalrouter benchmark init ./my-benchmark --namespace NAMESPACE --name my-benchmark --template text
-evalrouter benchmark validate ./my-benchmark
-evalrouter benchmark bundle ./my-benchmark --output my-benchmark.zip
-evalrouter benchmark submit my-benchmark.zip --wait
-```
+**Self-serve submission is not available yet.** Customers cannot add a
+benchmark by themselves today; the EvalRouter team adds benchmarks to the
+maintained catalog after review. Never tell the user their benchmark has been
+added or submitted because you prepared it. What you can do:
 
-- `init`, `validate`, `bundle` run offline: no account, no network, and nothing
-  in the package is executed. `init` writes an **explicitly synthetic draft**
-  (`--template text|custom-scorer|multi-turn`) that claims no license.
-- The user must supply the real material locally: tasks, grading fixtures,
-  rights/licence documents and attribution, authors and maintainer, limits,
-  metrics and limitations. There is no automatic Hugging Face or GitHub importer
-  in the CLI; do not claim one. Never include credentials or private customer data.
-- Local validation is not admission. `submit` uploads the bundle into the
-  workspace's **verified namespace** (requested and verified beforehand), then the
-  server revalidates and prepares it. Accepted preparation is not qualification,
-  and neither makes it runnable.
-- After submit: `evalrouter benchmark status PACKAGE_ID`, `evalrouter benchmark inspect PACKAGE_ID`,
-  and sharing via `evalrouter benchmark grant` / `evalrouter benchmark revoke`.
+1. **Check the catalog first** (`evalrouter catalog --query "NAME" --json`). If
+   a matching profile is `ready_for_quote`, run it with section B.
+2. **Prepare it for review**, recording the result of each check:
+   - the data is in a **public Hugging Face dataset**. Data hosted on GitHub
+     is not supported yet; GitHub only pins the task definition;
+   - every file is pinned to an **exact 40-hex commit** (never a branch, tag,
+     `main` or "latest"), with its **sha256** and **size in bytes**;
+   - an **existing lm-eval or Inspect task** already scores it, exactly as the
+     task is at the harness revision EvalRouter's runners pin. Custom grader
+     code, LLM judges, tools, multi-turn and sandboxed tasks cannot be added
+     yet: say so, do not write a grader to work around it;
+   - the data license is on the allowlist: MIT, Apache-2.0, BSD-2-Clause,
+     BSD-3-Clause, CC-BY-4.0, CC-BY-SA-4.0, CC0-1.0;
+   - a **draft manifest** in the catalog's shape, using only verified values.
+3. **Help them request it** through EvalRouter support, with the draft and the
+   check results. Adding it is the EvalRouter team's reviewed decision; promise
+   no timeline.
 
-Submitting creates server-side work: confirm with the human first. Full
-walkthrough, file roles and grant semantics:
-[references/publish-benchmark.md](references/publish-benchmark.md).
+**Not available yet** (do not offer or date them): private benchmarks in a
+workspace (self-serve), bring-your-own data per run without EvalRouter keeping
+it, automatic task detection, GitHub-hosted benchmark data, and a command that
+imports a dataset from a link.
+
+Step-by-step commands, the manifest template and the request checklist:
+[references/add-a-benchmark.md](references/add-a-benchmark.md). Benchmark
+suppliers whom the EvalRouter team has onboarded with a verified namespace use
+a separate package flow in
+[references/publish-benchmark.md](references/publish-benchmark.md); use it
+only when the user says they have been onboarded.
 
 ## Repository agents (ACP)
 

@@ -1,9 +1,9 @@
 {
   "name": "evalrouter",
-  "version": "0.1.0",
-  "description": "Agent skills for evaluating models and publishing benchmarks with EvalRouter.",
+  "version": "0.2.0",
+  "description": "EvalRouter agent skills: evaluate models and prepare benchmarks for EvalRouter.",
   "author": {
-    "name": "Kimpton AI",
+    "name": "EvalRouter",
     "url": "https://evalrouter.ai"
   },
   "homepage": "https://evalrouter.ai/developers/docs",
