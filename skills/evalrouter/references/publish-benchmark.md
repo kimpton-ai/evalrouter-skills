@@ -1,4 +1,10 @@
-# Publish your own benchmark
+# Publish a benchmark package (onboarded suppliers only)
+
+> **Who this is for.** This flow is only for benchmark suppliers whom the
+> EvalRouter team has onboarded and whose workspace has a **verified
+> namespace**. It is not self-serve. For every other user, follow
+> [add-a-benchmark.md](add-a-benchmark.md): check the catalog, prepare the
+> benchmark, and request that EvalRouter add it.
 
 > **Version gate.** The `benchmark` command group is newer than some
 > 0.2.0 builds. Run `evalrouter benchmark --help`; if it is not recognised,

@@ -7,7 +7,7 @@
    shipped CLI's argparse tree, including each `--flag` used with it.
 
 Usage (needs httpx and PyYAML, e.g. via uv):
-    uv run --with httpx --with pyyaml python scripts/validate.py \
+    uv run --with httpx --with pyyaml --with rich python scripts/validate.py \
         --cli /path/to/kimpton-evalrouter/packages/python/public/cli.py
 
 The CLI is imported only to build its parser; no command is executed and no
