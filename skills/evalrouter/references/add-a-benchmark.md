@@ -41,11 +41,14 @@ catalog entry with the same name can use a different split or protocol.
 Work through these checks with the user and write down the result of each. If
 one fails, say which one and why. Do not work around it.
 
-### a. Host the data publicly and pin it to one commit
+### a. Host the data on Hugging Face and pin it to one commit
 
-The data must be in a **public** Hugging Face dataset or a **public** GitHub
-repository. Private data, files on the user's machine, and links to cloud
-drives cannot be added today.
+The data must be in a **public Hugging Face dataset**, and every data file
+must come from the same dataset and commit. **Data hosted on GitHub is not
+supported yet**: GitHub is used only to pin the task definition (step c), not
+the data. If the data lives only on GitHub, the user has to publish it as a
+public Hugging Face dataset first, if its license allows that. Private data,
+files on the user's machine, and links to cloud drives cannot be added today.
 
 Pin every file to an exact commit: a 40-character hexadecimal commit ID.
 Branches, tags, `main` and "latest" are refused because they can change. To
@@ -54,8 +57,6 @@ turn a tag or branch into a commit ID:
 ```sh
 # Hugging Face dataset (the ref can be a tag or a branch)
 git ls-remote https://huggingface.co/datasets/ORG/DATASET REF
-# GitHub repository (for an annotated tag, use the line ending in ^{})
-git ls-remote https://github.com/ORG/REPO REF
 ```
 
 If the user has Python and `huggingface_hub`, this prints the commit, each
@@ -71,10 +72,8 @@ for f in info.siblings:
 '
 ```
 
-Write sources as URIs with the commit in them:
-
-- `hf://ORG/DATASET@COMMIT/path/to/file.parquet`
-- `github://ORG/REPO@COMMIT/path/to/file.jsonl`
+Write data sources as URIs with the commit in them:
+`hf://ORG/DATASET@COMMIT/path/to/file.parquet`.
 
 ### b. List every file with its SHA-256 and size
 
@@ -84,7 +83,6 @@ bytes. Compute them from a download at the pinned commit, not from a branch:
 
 ```sh
 curl -fsSL -o file.parquet "https://huggingface.co/datasets/ORG/DATASET/resolve/COMMIT/path/to/file.parquet"
-# GitHub: https://raw.githubusercontent.com/ORG/REPO/COMMIT/path/to/file.jsonl
 shasum -a 256 file.parquet
 wc -c < file.parquet
 ```
@@ -103,8 +101,10 @@ scores it:
 - an **Inspect** task from `inspect_evals`.
 
 Find the task, then confirm it reads the same dataset, split and columns as the
-user's data, and note its metrics. EvalRouter pins the harness version, so the
-user only names the task.
+user's data, and note its metrics. The grader must be that task exactly as it
+is at the harness revision EvalRouter's runners pin. A task that exists only in
+a newer or forked version of the harness, or one the user has changed, does not
+count. The user only names the task; EvalRouter records the pinned revision.
 
 If no existing task fits, or the benchmark needs its own grading code, an
 LLM judge, tools, multiple turns or a code sandbox, tell the user plainly that
@@ -119,7 +119,7 @@ BSD-3-Clause, CC-BY-4.0, CC-BY-SA-4.0, CC0-1.0**. Anything else is refused.
 EvalRouter reviews licenses by hand and never infers one from a name alone.
 
 Check that the license shown on the dataset host (the Hugging Face card's
-`license:` field or the GitHub repository's license) matches the license the
+`license:` field) matches the license the
 authors grant. If the host shows `other`, `unknown` or nothing, find the
 authors' own grant (paper, website or LICENSE file) and record the link;
 expect a manual review, which can end in a refusal. Record the license's URL
@@ -209,4 +209,5 @@ or imply the user can use them now:
   run and does not keep.
 - **Automatic task detection**: EvalRouter suggesting the matching task or
   grader from a dataset.
+- **Benchmark data hosted on GitHub** (data must be on Hugging Face).
 - **A command that adds a dataset from a Hugging Face or GitHub link.**

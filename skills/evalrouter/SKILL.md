@@ -195,10 +195,12 @@ added or submitted because you prepared it. What you can do:
 1. **Check the catalog first** (`evalrouter catalog --query "NAME" --json`). If
    a matching profile is `ready_for_quote`, run it with section B.
 2. **Prepare it for review**, recording the result of each check:
-   - the data is in a **public** Hugging Face dataset or GitHub repository;
+   - the data is in a **public Hugging Face dataset**. Data hosted on GitHub
+     is not supported yet; GitHub only pins the task definition;
    - every file is pinned to an **exact 40-hex commit** (never a branch, tag,
      `main` or "latest"), with its **sha256** and **size in bytes**;
-   - an **existing lm-eval or Inspect task** already scores it. Custom grader
+   - an **existing lm-eval or Inspect task** already scores it, exactly as the
+     task is at the harness revision EvalRouter's runners pin. Custom grader
      code, LLM judges, tools, multi-turn and sandboxed tasks cannot be added
      yet: say so, do not write a grader to work around it;
    - the data license is on the allowlist: MIT, Apache-2.0, BSD-2-Clause,
@@ -210,8 +212,8 @@ added or submitted because you prepared it. What you can do:
 
 **Not available yet** (do not offer or date them): private benchmarks in a
 workspace (self-serve), bring-your-own data per run without EvalRouter keeping
-it, automatic task detection, and a command that imports a dataset from a
-link.
+it, automatic task detection, GitHub-hosted benchmark data, and a command that
+imports a dataset from a link.
 
 Step-by-step commands, the manifest template and the request checklist:
 [references/add-a-benchmark.md](references/add-a-benchmark.md). Benchmark
