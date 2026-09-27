@@ -17,7 +17,7 @@
 network commands (`submit`, `status`, `inspect`, `grant`, `revoke`) do not.
 
 ```sh
-uv tool install --python 3.12 "kimpton-evalrouter-sdk[benchmark]"
+uv tool install --python 3.12 "evalrouter[benchmark]"
 ```
 
 Without it those three commands stop with `benchmark_extra_required` and print

@@ -17,7 +17,7 @@ description: >
 
 EvalRouter runs benchmark evaluations against managed model routes, your own
 model endpoints, or qualified repository agents. You work through the
-`evalrouter` CLI (Python package `kimpton-evalrouter-sdk`). Every paid run is
+`evalrouter` CLI (Python package `evalrouter`). Every paid run is
 bounded by a **quote**: a frozen plan with a spending cap that a human reviews
 before anything starts.
 
@@ -64,12 +64,12 @@ Requires Python 3.12 or 3.13. Install with [uv](https://docs.astral.sh/uv/)
 in its own tool environment (uv supplies Python 3.12 if needed):
 
 ```sh
-uv tool install --python 3.12 kimpton-evalrouter-sdk
+uv tool install --python 3.12 evalrouter
 evalrouter --help
 ```
 
 If the shell cannot find `evalrouter`, run `uv tool update-shell` and restart the
-terminal. Upgrade with `uv tool upgrade kimpton-evalrouter-sdk`.
+terminal. Upgrade with `uv tool upgrade evalrouter`.
 
 Account and key are browser steps the human does; the CLI never collects a
 password (see the authentication doc):
@@ -103,7 +103,9 @@ Use a profile whose `quote_availability.status` is `ready_for_quote`; an
 `active` listing alone does not mean it can run. Filters: `--query`, `--runner
 inspect|lm-eval`, `--capability`, `--cursor`/`--limit`. To evaluate the user's
 own endpoint instead of a managed route, use `evalrouter connections create`
-(credential read from the env var named by `--key-env`, never a flag), then
+(the provider key is never a flag: the human types it at the hidden prompt, or
+pipes it with `--key-stdin`, or names an env var with `--key-env`; rotate later
+with `evalrouter connections update CONNECTION_ID --rotate-key`), then
 `evalrouter connections check CONNECTION_ID` before quoting. A check can send a
 small model request that their provider bills.
 
