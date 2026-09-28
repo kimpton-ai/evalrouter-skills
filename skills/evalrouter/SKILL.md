@@ -4,8 +4,8 @@ description: >
   Evaluate language models and repository agents with EvalRouter from the
   terminal. Use when the user wants to run a benchmark against a model, compare
   models on an evaluation, get a quote or spending cap for an eval run, check
-  results or export an EvalRouter report, set up the evalrouter CLI or its
-  workspace API key, or add their own benchmark to EvalRouter: check whether it
+  results or export an EvalRouter report, set up the evalrouter CLI and browser sign-in or its
+  automation API key, or add their own benchmark to EvalRouter: check whether it
   is already in the catalog, whether their dataset can run on EvalRouter, draft
   a benchmark manifest and request that it be added. Covers catalog discovery,
   quote.json, coverage and concurrency, approval of spending caps before paid
@@ -27,7 +27,8 @@ acting, and run `evalrouter <command> --help` when you need exact flags:
 
 - Overview: https://evalrouter.ai/developers/docs/overview
 - Quickstart: https://evalrouter.ai/developers/docs/quickstart
-- Account and key: https://evalrouter.ai/developers/docs/authentication
+- Browser sign-in: https://evalrouter.ai/developers/docs/cli-login
+- Automation keys: https://evalrouter.ai/developers/docs/authentication
 - CLI commands: https://evalrouter.ai/developers/docs/cli
 - Results and exports: https://evalrouter.ai/developers/docs/results
 - Availability and limits: https://evalrouter.ai/developers/docs/availability
@@ -42,12 +43,11 @@ acting, and run `evalrouter <command> --help` when you need exact flags:
    any run needs its own quote, cap and approval. Show the quote first, then stop and wait for a clear
    "yes, run quote Q under cap $X". Silence, a general "go ahead" given before the
    quote existed, or approval of a different quote does not count.
-2. **Never print, paste, log or commit credentials.** The workspace key lives in
-   `EVALROUTER_API_KEY`, set by the human through their secret manager or private
-   shell. Never pass it as a command argument, write it into `quote.json`, a
-   `.env` you create, a URL, a commit, or chat output. Do not `echo` it to check
-   it; check presence with something like `test -n "$EVALROUTER_API_KEY" && echo set`.
-   If the user pastes a key into chat, tell them to revoke it and create a new one.
+2. **Keep credentials private.** Browser sign-in is the default; the CLI handles
+   storing and refreshing its session. Never ask for a password, token, or API key
+   in chat or put one in command arguments, files you create, screenshots, or
+   logs. For explicit API-key automation, read `EVALROUTER_API_KEY` from the
+   user's secret manager or private environment without printing it.
 3. **Label results honestly.** A `sample` coverage run is a sample, not a
    benchmark score. Partial, failed and cancelled runs stay labelled as such. Report
    coverage, errors and billing state next to any score. Never present an
@@ -55,8 +55,9 @@ acting, and run `evalrouter <command> --help` when you need exact flags:
 4. **Do not invent identifiers.** Profile IDs, route IDs, connection IDs and
    agent refs must come from `evalrouter catalog`, `evalrouter connections list`,
    or `evalrouter agent-builds status` responses in this workspace.
-5. **Do not create evaluations to debug auth.** For an invalid or expired key,
-   check the workspace ID and key status in the web settings page.
+5. **Do not create evaluations to debug auth.** Use `evalrouter whoami`; for an
+   expired browser session run `evalrouter login` again. Troubleshoot workspace
+   keys only when the user has chosen key-based automation.
 
 ## A. Setup
 
@@ -71,19 +72,41 @@ evalrouter --help
 If the shell cannot find `evalrouter`, run `uv tool update-shell` and restart the
 terminal. Upgrade with `uv tool upgrade evalrouter`.
 
-Account and key are browser steps the human does; the CLI never collects a
-password (see the authentication doc):
+Start with `evalrouter whoami`. If it reports that the user is signed out,
+run the browser sign-in command and keep it running while the user approves:
 
-1. Create an account at https://evalrouter.ai/register and verify the email.
-2. Create a workspace API key at https://evalrouter.ai/settings/api-keys.
-3. The human sets, privately:
-   - `EVALROUTER_API_KEY`: the key's secret value
-   - `EVALROUTER_WORKSPACE_ID`: that workspace's ID
-   - `EVALROUTER_BASE_URL`: `https://api.evalrouter.ai` (no `/v1` suffix)
+```sh
+evalrouter login
+evalrouter whoami
+```
 
-`--workspace-id` and `--base-url` can override the last two per command; there
-is no key flag, by design. Registration and installation give no evaluation
-credit; paid runs need available workspace credit.
+Describe the user action simply: “Sign in or create your account in the browser,
+then approve the code.” If the agent cannot open the browser, give the verification
+URL and code printed by the CLI. On a remote terminal use `evalrouter login
+--no-browser`; approval can happen on the user's own computer. If the command
+finishes before they approve, rerun it and use its new code.
+
+The CLI selects the only workspace automatically. If there are several, show the
+returned choices and use `evalrouter login --workspace NAME_OR_ID` for the one the
+user selects. Don't ask them to hunt for a workspace UUID. A new account may need
+to finish setup in the EvalRouter website; follow the CLI's setup link with the
+same identity, then let the command continue. Older CLI versions may ask you to
+rerun login afterwards.
+
+Do not ask the user to install a keychain package, configure a credential backend,
+export API variables, or generate a workspace API key for normal browser sign-in.
+Credential storage is handled by the CLI. Explain an actual operating-system
+permission prompt only if one appears; don't disable its protections. Production
+is the default API. If an older installed CLI reports a missing base URL, upgrade
+it or pass `--base-url https://api.evalrouter.ai` without making the user configure
+environment variables. Use another environment only when the user requests it.
+
+For CI, an explicitly selected automation flow, or a server that says browser
+sign-in is unavailable, follow the automation-key documentation. Don't silently
+switch to manual API keys after another authentication error.
+
+Registration and installation give no evaluation credit. Discovery and quotes
+start no paid work; evaluation execution needs available workspace credit.
 
 Global flags on every command: `--json` (one JSON result on stdout, progress on
 stderr; prefer it when you parse output), `--timeout SECONDS`, `--base-url`,

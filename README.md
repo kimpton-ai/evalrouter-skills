@@ -42,8 +42,8 @@ benchmark (pinned public source, hashes, matching lm-eval or Inspect task,
 license check, draft manifest) and helps you request it from EvalRouter.
 
 The skill never starts paid work without your explicit approval of a quote, and
-never handles your API key beyond reading `EVALROUTER_API_KEY` from your
-environment.
+uses browser sign-in by default. Workspace keys are for explicit automation;
+the skill never asks you to paste credentials into chat.
 
 | Skill | Purpose |
 |---|---|
