@@ -95,7 +95,9 @@ rerun login afterwards.
 
 Do not ask the user to install a keychain package, configure a credential backend,
 export API variables, or generate a workspace API key for normal browser sign-in.
-Credential storage is handled by the CLI. Explain an actual operating-system
+Credential storage is handled by the CLI. Keep routine updates focused on sign-in
+and the next action; omit storage-backend details unless troubleshooting needs them.
+Explain an actual operating-system
 permission prompt only if one appears; don't disable its protections. Production
 is the default API. If an older installed CLI reports a missing base URL, upgrade
 it or pass `--base-url https://api.evalrouter.ai` without making the user configure
