@@ -3,8 +3,9 @@
 > **Who this is for.** This flow is only for benchmark suppliers whom the
 > EvalRouter team has onboarded and whose workspace has a **verified
 > namespace**. It is not self-serve. For every other user, follow
-> [add-a-benchmark.md](add-a-benchmark.md): check the catalog, prepare the
-> benchmark, and request that EvalRouter add it.
+> [add-a-benchmark.md](add-a-benchmark.md) for a public catalog request, or
+> [private-benchmark.md](private-benchmark.md) for a workspace-private
+> benchmark where enabled.
 
 > **Version gate.** The `benchmark` command group is newer than some
 > 0.2.0 builds. Run `evalrouter benchmark --help`; if it is not recognised,
@@ -51,10 +52,11 @@ maintainer, `rights` entries (the draft uses `LicenseRef-NotGranted` and
 limitations, and review the `"synthetic": true` flag once the content is real
 (check the current docs or `validate` output for how it is treated).
 
-There is **no automatic importer** from Hugging Face or GitHub in the CLI today.
-The user supplies material as local files. Do not claim otherwise; if they only
-have a dataset URL, help them download and convert it themselves, having checked
-the licence permits it. Never include credentials or private customer data.
+This supplier **package** workflow uses local files; `benchmark import` is a
+separate workspace-private Hugging Face source flow and does not fill a
+supplier package. If the supplier has only a dataset URL, help them prepare
+local package material after checking its license. Never include credentials
+or private customer data.
 
 ## 3. Validate and bundle (offline)
 
@@ -70,10 +72,12 @@ overwrites an existing `--output`. Local validation is not platform admission.
 
 ## 4. Submit (network, needs approval)
 
-Requirements: `EVALROUTER_API_KEY` / `EVALROUTER_WORKSPACE_ID` set, and a
-**verified namespace** in the workspace whose slug equals the package's
-`namespace` (otherwise `namespace_not_found`). Confirm with the human before
-submitting.
+Requirements: sign in to the intended workspace (browser sign-in by default,
+or a scoped API key for explicit automation) and confirm a **verified
+namespace** there whose slug equals the package's `namespace` (otherwise
+`namespace_not_found`). Review the package and any server-side cost or work
+before obtaining the human's submission approval. Submission does not approve
+any later evaluation charge.
 
 ```sh
 evalrouter benchmark submit my-benchmark.zip --wait

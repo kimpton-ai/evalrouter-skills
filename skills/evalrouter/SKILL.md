@@ -1,29 +1,25 @@
 ---
 name: evalrouter
 description: >
-  Evaluate language models and repository agents with EvalRouter from the
-  terminal. Use when the user wants to run a benchmark against a model, compare
-  models on an evaluation, get a quote or spending cap for an eval run, check
-  results or export an EvalRouter report, set up the evalrouter CLI and browser sign-in or its
-  automation API key, or add their own benchmark to EvalRouter: check whether it
-  is already in the catalog, whether their dataset can run on EvalRouter, draft
-  a benchmark manifest and request that it be added. Covers catalog discovery,
-  quote.json, coverage and concurrency, approval of spending caps before paid
-  work, run/wait/results/export, and benchmark readiness checks (pinned public
-  sources, sha256, existing lm-eval or Inspect task, license allowlist).
+  Evaluate models and repository agents with EvalRouter. Use for CLI sign-in,
+  catalog discovery, quotes and spending caps, runs, progress, comparisons,
+  results and exports. Help create workspace-private benchmarks where enabled,
+  prepare public catalog requests, or publish a supplier package only for an
+  onboarded supplier. Report EvalRouter defects through feedback.
 ---
 
 # Evaluate with EvalRouter
 
-EvalRouter runs benchmark evaluations against managed model routes, your own
+EvalRouter runs versioned evaluations against managed model routes, your own
 model endpoints, or qualified repository agents. You work through the
 `evalrouter` CLI (Python package `evalrouter`). Every paid run is
 bounded by a **quote**: a frozen plan with a spending cap that a human reviews
 before anything starts.
 
-**The live docs are the source of truth.** This skill gives the workflow; the
-docs carry current flags, limits and wording. Read the relevant page before
-acting, and run `evalrouter <command> --help` when you need exact flags:
+**Check current availability before acting.** The API contract includes routes
+that may not be enabled for this workspace or in Production. The live docs
+carry current flags and limits. Read the relevant page before acting, and run
+`evalrouter <command> --help` when you need exact flags:
 
 - Overview: https://evalrouter.ai/developers/docs/overview
 - Quickstart: https://evalrouter.ai/developers/docs/quickstart
@@ -34,15 +30,22 @@ acting, and run `evalrouter <command> --help` when you need exact flags:
 - Availability and limits: https://evalrouter.ai/developers/docs/availability
 - Model API (direct HTTP): https://evalrouter.ai/developers/docs/model-api
 - Repository agents: https://evalrouter.ai/developers/docs/repository-agents
+- Private benchmarks: https://evalrouter.ai/developers/docs/byob
+- Hugging Face imports: https://evalrouter.ai/developers/docs/huggingface
+- Feedback: https://evalrouter.ai/developers/docs/feedback
+- Public OpenAPI: https://evalrouter.ai/developers/docs/openapi.json
 
 ## Safety rules (non-negotiable)
 
 1. **Never start paid work without explicit human approval of a specific quote.**
-   `evalrouter run`, `evalrouter agent-builds create` and `evalrouter benchmark submit`
-   create server-side work. Preparing a benchmark never justifies a paid run:
+   `evalrouter run` and `evalrouter agent-builds create` start quoted
+   server-side work. Preparing a benchmark never justifies a paid run:
    any run needs its own quote, cap and approval. Show the quote first, then stop and wait for a clear
    "yes, run quote Q under cap $X". Silence, a general "go ahead" given before the
-   quote existed, or approval of a different quote does not count.
+   quote existed, or approval of a different quote does not count. Repository
+   preparation and evaluation have separate quotes and approvals. Supplier
+   `evalrouter benchmark submit` needs approval of the exact package; it does
+   not authorize later paid evaluation.
 2. **Keep credentials private.** Browser sign-in is the default; the CLI handles
    storing and refreshing its session. Never ask for a password, token, or API key
    in chat or put one in command arguments, files you create, screenshots, or
@@ -52,9 +55,9 @@ acting, and run `evalrouter <command> --help` when you need exact flags:
    benchmark score. Partial, failed and cancelled runs stay labelled as such. Report
    coverage, errors and billing state next to any score. Never present an
    illustrative ID from docs as a real, available target.
-4. **Do not invent identifiers.** Profile IDs, route IDs, connection IDs and
-   agent refs must come from `evalrouter catalog`, `evalrouter connections list`,
-   or `evalrouter agent-builds status` responses in this workspace.
+4. **Do not invent identifiers.** Profile IDs, route IDs, `eval://` references,
+   connection IDs and agent refs must come from discovery or returned records
+   in this workspace, not illustrative examples.
 5. **Do not create evaluations to debug auth.** Use `evalrouter whoami`; for an
    expired browser session run `evalrouter login` again. Troubleshoot workspace
    keys only when the user has chosen key-based automation.
@@ -109,6 +112,8 @@ switch to manual API keys after another authentication error.
 
 Registration and installation give no evaluation credit. Discovery and quotes
 start no paid work; evaluation execution needs available workspace credit.
+Production is the default API. If a feature is unavailable there, do not infer
+that Dev is an acceptable target without the user's direction.
 
 Global flags on every command: `--json` (one JSON result on stdout, progress on
 stderr; prefer it when you parse output), `--timeout SECONDS`, `--base-url`,
@@ -133,6 +138,10 @@ pipes it with `--key-stdin`, or names an env var with `--key-env`; rotate later
 with `evalrouter connections update CONNECTION_ID --rotate-key`), then
 `evalrouter connections check CONNECTION_ID` before quoting. A check can send a
 small model request that their provider bills.
+
+The API also accepts immutable `eval://provider/name/version` references.
+Obtain the exact reference from discovery and quote its actual coverage and
+compatibility; do not turn a catalog name into a guessed reference.
 
 **2. Write `quote.json`.** Minimal shape (full field reference in
 [references/quote-json.md](references/quote-json.md)):
@@ -161,15 +170,19 @@ Optionally `--concurrency auto|max|1..100` (requires a CLI build whose
 - **Compatibility and warnings**: resolve incompatibility before anything else.
 - **Coverage**: sample (how many tasks, which seed) or full. A sample is not a
   full-benchmark score.
-- **Cost**: `estimated_charge_microusd` versus `max_charge_microusd` (the cap),
-  the cost components, and any external charges (connected endpoints bill
-  separately, outside the EvalRouter cap). The cap is a ceiling, not a price
-  guarantee.
+- **Cost**: `expected_charge_microusd` and `expected_range` (p50-p90 with a
+  stated basis), when present; `worst_case_charge_microusd`; the enforced
+  `max_charge_microusd` cap; cost components; and external charges. The legacy
+  `estimated_charge_microusd` field names the conservative **worst case**, not
+  expected spend. Connected endpoints bill separately, outside EvalRouter's
+  cap. The cap is a ceiling, not a price guarantee.
 - **Concurrency**: the requested value and the admitted run ceiling, per
   profile. The ceiling can be lower than requested; the quote lists why:
   conservative automatic choice (`auto`), adapter limit, gateway limit, the
   selected task count, or the spending cap. These are ceilings, not live counts.
 - **Expiry** (`expires_at`) and the quote `id`.
+- **Output format**, when selectable: the quote freezes it and scores from
+  different formats must not be ranked together.
 
 If anything should change (model, coverage, cap), write a new quote; quotes are
 frozen. Retrieve a saved one with `evalrouter quote --id QUOTE_ID`.
@@ -192,8 +205,17 @@ does not stop server work. To follow later use `evalrouter wait RUN_ID` or
 `evalrouter status RUN_ID`; to stop, `evalrouter cancel RUN_ID` only when the human
 intends cancellation.
 
+For a person at a terminal, `evalrouter run BENCHMARK --model MODEL` guides
+discovery, shows a free quote, asks for a cap and offers Start run or Cancel.
+`--dry-run` stops at the quote. The CLI stores the accepted quote and operation
+key for recovery. Scripts and agents do not get that prompt; use the explicit
+quote flow above and never add `--yes` before approval. For an earlier run,
+`run --from` is a new, independently charged evaluation; `resume` is a
+separate, availability-gated continuation workflow. See the current CLI docs.
+
 Exit codes: 0 success; 1 API/transport error or failed run; 2 invalid input or
-rejected request; 4 partial or cancelled waited run.
+rejected request; 4 partial or cancelled waited run; 5 declined confirmation
+with nothing started; 6 local watch disconnected while server work continues.
 
 **6. Results and exports.**
 
@@ -203,51 +225,38 @@ evalrouter export RUN_ID --version RESULT_VERSION --format html --output result.
 evalrouter export RUN_ID --version RESULT_VERSION --format json --output result.json
 ```
 
-`--format` accepts `json`, `csv` or `html`. Exports need an explicit `--output`
-and refuse to overwrite unless `--overwrite` is passed. Use the result's integer
+`--format` accepts `json`, `csv` or `html`; recent CLI versions also offer an
+evidence `bundle`. `--output` is optional: without it, the CLI chooses a free
+filename. An explicit existing filename is refused unless `--overwrite` is
+passed. Use the result's integer
 `--version` for repeatable reports and keep it with downstream copies. Report
 terminal status, completed versus missing work, errors and billing state with
 the scores.
 
-## C. Add your own benchmark
+For compatible model runs, `evalrouter compare RUN_A RUN_B --format html
+--output my-comparison` downloads a descriptive comparison without inference.
+Check matching benchmark version, task selection and output format. Keep
+partial and unsettled results visible.
 
-Use this when the user wants to add or publish a benchmark, write a benchmark
-manifest, or check whether their dataset can run on EvalRouter.
+## C. Bring or publish a benchmark
 
-**Self-serve submission is not available yet.** Customers cannot add a
-benchmark by themselves today; the EvalRouter team adds benchmarks to the
-maintained catalog after review. Never tell the user their benchmark has been
-added or submitted because you prepared it. What you can do:
+Choose the flow that matches the user's goal and the target environment:
 
-1. **Check the catalog first** (`evalrouter catalog --query "NAME" --json`). If
-   a matching profile is `ready_for_quote`, run it with section B.
-2. **Prepare it for review**, recording the result of each check:
-   - the data is in a **public Hugging Face dataset**. Data hosted on GitHub
-     is not supported yet; GitHub only pins the task definition;
-   - every file is pinned to an **exact 40-hex commit** (never a branch, tag,
-     `main` or "latest"), with its **sha256** and **size in bytes**;
-   - an **existing lm-eval or Inspect task** already scores it, exactly as the
-     task is at the harness revision EvalRouter's runners pin. Custom grader
-     code, LLM judges, tools, multi-turn and sandboxed tasks cannot be added
-     yet: say so, do not write a grader to work around it;
-   - the data license is on the allowlist: MIT, Apache-2.0, BSD-2-Clause,
-     BSD-3-Clause, CC-BY-4.0, CC-BY-SA-4.0, CC0-1.0;
-   - a **draft manifest** in the catalog's shape, using only verified values.
-3. **Help them request it** through EvalRouter support, with the draft and the
-   check results. Adding it is the EvalRouter team's reviewed decision; promise
-   no timeline.
-
-**Not available yet** (do not offer or date them): private benchmarks in a
-workspace (self-serve), bring-your-own data per run without EvalRouter keeping
-it, automatic task detection, GitHub-hosted benchmark data, and a command that
-imports a dataset from a link.
-
-Step-by-step commands, the manifest template and the request checklist:
-[references/add-a-benchmark.md](references/add-a-benchmark.md). Benchmark
-suppliers whom the EvalRouter team has onboarded with a verified namespace use
-a separate package flow in
-[references/publish-benchmark.md](references/publish-benchmark.md); use it
-only when the user says they have been onboarded.
+1. **Workspace-private benchmark, where enabled:** create one from a local
+   JSONL, CSV or Parquet file, or from a workspace-imported Hugging Face file.
+   The [private benchmark workflow](references/private-benchmark.md) covers
+   rights, verification, built-in generic graders, source quotas and quoting.
+   This feature is enabled in Dev only; it does not publish to the shared
+   catalog or imply Production availability. Uploaded data is untrusted and
+   never executed.
+2. **Public maintained catalog:** check for a ready profile, then use
+   [prepare a catalog request](references/add-a-benchmark.md) to record pinned
+   public sources, matching maintained task, rights and a draft manifest.
+   Preparation does not add or admit the benchmark; the EvalRouter team
+   reviews it.
+3. **Onboarded supplier with a verified namespace:** use the separate
+   [package publishing workflow](references/publish-benchmark.md). Local
+   validation and server submission are not platform admission.
 
 ## Repository agents (ACP)
 
@@ -259,3 +268,12 @@ disabled. The flow is `agent-builds preview` (quote, no spend) → human approva
 `agent-builds create` → `agent-builds status` until ready → a separate evaluation
 quote using the returned agent ref and coverage. Qualification and evaluation have
 separate caps and each needs its own approval.
+
+## Feedback
+
+If an API or documentation defect blocks work, follow
+https://evalrouter.ai/developers/docs/feedback and send one concise report with
+`evalrouter feedback --kind bug --severity degraded --summary "Brief problem"`.
+Include a safe request ID and error code when available. Never include secrets,
+customer data or hidden evaluation content. Resolve expected validation
+refusals locally.

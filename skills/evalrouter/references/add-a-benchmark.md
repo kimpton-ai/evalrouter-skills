@@ -1,21 +1,17 @@
-# Get your benchmark onto EvalRouter
+# Request a benchmark for the maintained public catalog
 
-Use this when the user wants to add or publish a benchmark, write a benchmark
-manifest, or find out whether their dataset can run on EvalRouter.
+Use this when the user wants a benchmark reviewed for EvalRouter's maintained
+**public catalog**. For workspace-private data, use
+[private-benchmark.md](private-benchmark.md) where enabled. Verified suppliers
+have a separate [package flow](publish-benchmark.md).
 
-**Be honest about what exists today.** Customers cannot yet add a benchmark to
-EvalRouter by themselves. There is no self-serve submission, no command that
-imports a Hugging Face or GitHub dataset, and no way to upload a private
-benchmark into a workspace. The EvalRouter team adds benchmarks to the
-maintained catalog after reviewing them. What you can do for the user is:
+**Be honest about this path.** Preparing a draft does not submit, admit or
+publish a public catalog benchmark. The EvalRouter team adds one after review.
+What you can do for the user is:
 
 1. check whether the benchmark is already in the catalog, and run it if so;
 2. prepare the benchmark so it is ready for that review;
 3. tell them how to request it.
-
-(Benchmark suppliers whom the EvalRouter team has onboarded, with a verified
-namespace, use a separate package flow: [publish-benchmark.md](publish-benchmark.md).
-Use it only if the user says they have been onboarded.)
 
 Never say a benchmark "has been added", "is submitted" or "will be available"
 because you prepared it. It becomes runnable only when it shows up in
@@ -43,12 +39,12 @@ one fails, say which one and why. Do not work around it.
 
 ### a. Host the data on Hugging Face and pin it to one commit
 
-The data must be in a **public Hugging Face dataset**, and every data file
-must come from the same dataset and commit. **Data hosted on GitHub is not
-supported yet**: GitHub is used only to pin the task definition (step c), not
-the data. If the data lives only on GitHub, the user has to publish it as a
-public Hugging Face dataset first, if its license allows that. Private data,
-files on the user's machine, and links to cloud drives cannot be added today.
+For this maintained-catalog request, use a **public Hugging Face dataset**,
+with every data file from the same dataset and commit. GitHub pins a task
+definition here, not the data. If the data lives only on GitHub, it needs a
+permitted public dataset host for this path. Private files can instead become
+workspace-private benchmarks where that feature is enabled; they do not
+become public catalog data.
 
 Pin every file to an exact commit: a 40-character hexadecimal commit ID.
 Branches, tags, `main` and "latest" are refused because they can change. To
@@ -106,11 +102,11 @@ is at the harness revision EvalRouter's runners pin. A task that exists only in
 a newer or forked version of the harness, or one the user has changed, does not
 count. The user only names the task; EvalRouter records the pinned revision.
 
-If no existing task fits, or the benchmark needs its own grading code, an
-LLM judge, tools, multiple turns or a code sandbox, tell the user plainly that
-this cannot be added today. **Custom grader code is not supported yet.** Do not
-write a grader for them as a way around this, and do not describe a new task as
-something EvalRouter will accept.
+If no existing task fits, or this proposed benchmark needs its own grading
+code, an LLM judge, tools, multiple turns or a code sandbox, tell the user
+plainly that this **maintained-catalog request path** does not cover it. Do not
+write a grader as a workaround. An onboarded supplier may have a separate
+reviewed package path; never promise it will be accepted.
 
 ### d. Check the license
 
@@ -198,16 +194,9 @@ After it is added, it appears in `evalrouter catalog`. Running it is ordinary
 paid work: quote first, then the user's explicit approval of that quote and
 its cap (SKILL.md section B).
 
-## Not available yet
+## Other paths and limits
 
-These are planned but **not available**. Do not offer them, suggest a date,
-or imply the user can use them now:
-
-- **Private benchmarks in your workspace**: self-serve submission of a
-  benchmark that stays private to the user's workspace.
-- **Bring your own data per run**: running on data EvalRouter fetches for one
-  run and does not keep.
-- **Automatic task detection**: EvalRouter suggesting the matching task or
-  grader from a dataset.
-- **Benchmark data hosted on GitHub** (data must be on Hugging Face).
-- **A command that adds a dataset from a Hugging Face or GitHub link.**
+Private benchmarks in a workspace and pinned Hugging Face imports are
+available where enabled; see [private-benchmark.md](private-benchmark.md).
+They are separate from public catalog review. Do not offer automatic task
+detection or a per-run ephemeral dataset import as a substitute for review.
