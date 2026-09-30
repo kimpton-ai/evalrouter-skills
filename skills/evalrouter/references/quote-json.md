@@ -86,13 +86,10 @@ Check `evalrouter quote --help` for CLI support; the API field is
 
 ## Reading the response
 
-Top-level fields include `id`, `expires_at`, `plan`,
-`expected_charge_microusd`, `expected_range`,
-`worst_case_charge_microusd`, `estimated_charge_microusd`,
-`max_charge_microusd`, `price_version` and `retention`. The expected fields
-can be absent. `estimated_charge_microusd` is a legacy name for the
-conservative **worst case**, not expected spend. The cap is
-`max_charge_microusd`; actual charges follow usage and cannot exceed it.
-Summarise compatibility, warnings, coverage, expected range and its basis,
-worst case, cap, external charges, concurrency and expiry for the human, then
-wait for explicit approval before `evalrouter run`.
+Top-level fields include `id`, `expires_at`, `plan`, `max_charge_microusd`,
+`price_version` and `retention`. The cap is `max_charge_microusd`; actual
+charges follow usage and cannot exceed it. Do not present pre-run cost
+estimates or forecasts, even if a response still contains such fields.
+Summarise compatibility, warnings, coverage, cap, external charges,
+concurrency and expiry for the human, then wait for explicit approval before
+`evalrouter run`.

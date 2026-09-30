@@ -170,12 +170,10 @@ Optionally `--concurrency auto|max|1..100` (requires a CLI build whose
 - **Compatibility and warnings**: resolve incompatibility before anything else.
 - **Coverage**: sample (how many tasks, which seed) or full. A sample is not a
   full-benchmark score.
-- **Cost**: `expected_charge_microusd` and `expected_range` (p50-p90 with a
-  stated basis), when present; `worst_case_charge_microusd`; the enforced
-  `max_charge_microusd` cap; cost components; and external charges. The legacy
-  `estimated_charge_microusd` field names the conservative **worst case**, not
-  expected spend. Connected endpoints bill separately, outside EvalRouter's
-  cap. The cap is a ceiling, not a price guarantee.
+- **Cap**: the enforced `max_charge_microusd`. Actual charges follow usage and
+  cannot exceed it; the cap is a ceiling, not a price. Connected endpoints bill
+  separately, outside EvalRouter's cap. Do not present pre-run cost estimates
+  or forecasts, even if a response still contains such fields.
 - **Concurrency**: the requested value and the admitted run ceiling, per
   profile. The ceiling can be lower than requested; the quote lists why:
   conservative automatic choice (`auto`), adapter limit, gateway limit, the
@@ -271,9 +269,37 @@ separate caps and each needs its own approval.
 
 ## Feedback
 
-If an API or documentation defect blocks work, follow
-https://evalrouter.ai/developers/docs/feedback and send one concise report with
-`evalrouter feedback --kind bug --severity degraded --summary "Brief problem"`.
-Include a safe request ID and error code when available. Never include secrets,
-customer data or hidden evaluation content. Resolve expected validation
-refusals locally.
+When you hit what looks like an EvalRouter defect while using this skill,
+report it yourself with `evalrouter feedback` as part of the task; don't ask
+the user to file it. Before sending, read
+[references/report-defects.md](references/report-defects.md) for the checks,
+the report contents and the command.
+
+- **Reportable:** after basic local checks (flags match `--help`, identifiers
+  came from discovery in this workspace, `evalrouter whoami` shows the intended
+  sign-in), the CLI or API contradicts documented behavior. Examples: an exact
+  route ID just returned by `evalrouter catalog --models` is rejected as
+  `ambiguous_model`; an internal server error; a CLI crash, traceback or
+  unparseable response; docs that contradict the shipped command.
+- **Not a defect by itself:** signed out, insufficient credit, a validation
+  error caused by your input, a feature disabled for this workspace, a rate
+  limit, a refused cap, or a low score. Resolve these locally or tell the user.
+- **Contents:** only the behavior, expected versus observed, the command
+  shape with placeholders (`evalrouter quote --config FILE`), and the error
+  code, request ID, HTTP status and route. Leave out every identifier and value
+  from this workspace or the user's arguments (route, profile, quote, run,
+  workspace and connection IDs, config contents, file paths), raw output,
+  secrets, benchmark or run data. The request ID is enough to trace it. Pass
+  `--contact-ok` only if the user agreed to be contacted.
+- **Limits:** one report per distinct defect per task, and at most three per
+  session. Use the current sign-in and environment: never sign up, create keys,
+  switch account or environment, or repeat a paid action to reproduce or
+  report. If the report itself fails, don't report that failure; continue.
+- **Permission:** skip reporting if the user opted out or the work is offline.
+  Follow the platform's tool permissions for this command as for any other; a
+  permission granted for another command doesn't cover it.
+- **After sending:** keep the returned `feedback_id` in your working context to
+  avoid duplicates, not in the user's files. Don't show the report text; a
+  brief mention is enough, and never hide or deny the report when asked. Tell
+  the user about the defect itself whenever it still blocks or changes their
+  result.
