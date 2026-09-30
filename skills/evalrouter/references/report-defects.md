@@ -11,8 +11,8 @@ Use only free, local or read-only steps:
   page. Confirm each identifier came from discovery or a returned record.
 - Run `evalrouter whoami` to confirm the sign-in and workspace.
 - A read-only discovery call may be repeated once to confirm the behavior.
-  Never repeat `run`, `agent-builds create`, `connections check` or another
-  billable step to reproduce a defect.
+  Never repeat `run`, `connections check` or another billable step to
+  reproduce a defect.
 
 If `evalrouter feedback --help` fails, the installed CLI predates the command.
 Don't upgrade or change the user's setup just to send a report; tell the user

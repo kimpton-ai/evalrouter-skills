@@ -1,20 +1,24 @@
 ---
 name: evalrouter
 description: >
-  Evaluate models and repository agents with EvalRouter. Use for CLI sign-in,
-  catalog discovery, quotes and spending caps, runs, progress, comparisons,
-  results and exports. Help create workspace-private benchmarks where enabled,
+  Evaluate models with EvalRouter. Use for CLI sign-in, catalog discovery,
+  quotes and spending caps, runs, progress, comparisons, results and exports.
+  Help create workspace-private benchmarks where enabled,
   prepare public catalog requests, or publish a supplier package only for an
   onboarded supplier. Report EvalRouter defects through feedback.
 ---
 
 # Evaluate with EvalRouter
 
-EvalRouter runs versioned evaluations against managed model routes, your own
-model endpoints, or qualified repository agents. You work through the
-`evalrouter` CLI (Python package `evalrouter`). Every paid run is
-bounded by a **quote**: a frozen plan with a spending cap that a human reviews
-before anything starts.
+EvalRouter runs versioned evaluations against managed model routes or your own
+model endpoints. You work through the `evalrouter` CLI (Python package
+`evalrouter`). Every paid run is bounded by a **quote**: a frozen plan with a
+spending cap that a human reviews before anything starts.
+
+You, the coding agent, use the CLI on the user's behalf; the thing evaluated is
+a model. Building or evaluating agent programs or executable benchmarks from a
+code repository is not a supported public workflow. Say so if asked, and don't
+attempt it, even if a CLI build lists related commands.
 
 **Check current availability before acting.** The API contract includes routes
 that may not be enabled for this workspace or in Production. The live docs
@@ -29,7 +33,6 @@ carry current flags and limits. Read the relevant page before acting, and run
 - Results and exports: https://evalrouter.ai/developers/docs/results
 - Availability and limits: https://evalrouter.ai/developers/docs/availability
 - Model API (direct HTTP): https://evalrouter.ai/developers/docs/model-api
-- Repository agents: https://evalrouter.ai/developers/docs/repository-agents
 - Private benchmarks: https://evalrouter.ai/developers/docs/byob
 - Hugging Face imports: https://evalrouter.ai/developers/docs/huggingface
 - Feedback: https://evalrouter.ai/developers/docs/feedback
@@ -38,12 +41,11 @@ carry current flags and limits. Read the relevant page before acting, and run
 ## Safety rules (non-negotiable)
 
 1. **Never start paid work without explicit human approval of a specific quote.**
-   `evalrouter run` and `evalrouter agent-builds create` start quoted
-   server-side work. Preparing a benchmark never justifies a paid run:
-   any run needs its own quote, cap and approval. Show the quote first, then stop and wait for a clear
-   "yes, run quote Q under cap $X". Silence, a general "go ahead" given before the
-   quote existed, or approval of a different quote does not count. Repository
-   preparation and evaluation have separate quotes and approvals. Supplier
+   `evalrouter run` starts quoted server-side work. Preparing a benchmark never
+   justifies a paid run: any run needs its own quote, cap and approval. Show the
+   quote first, then stop and wait for a clear "yes, run quote Q under cap $X".
+   Silence, a general "go ahead" given before the quote existed, or approval of
+   a different quote does not count. Supplier
    `evalrouter benchmark submit` needs approval of the exact package; it does
    not authorize later paid evaluation.
 2. **Keep credentials private.** Browser sign-in is the default; the CLI handles
@@ -55,9 +57,9 @@ carry current flags and limits. Read the relevant page before acting, and run
    benchmark score. Partial, failed and cancelled runs stay labelled as such. Report
    coverage, errors and billing state next to any score. Never present an
    illustrative ID from docs as a real, available target.
-4. **Do not invent identifiers.** Profile IDs, route IDs, `eval://` references,
-   connection IDs and agent refs must come from discovery or returned records
-   in this workspace, not illustrative examples.
+4. **Do not invent identifiers.** Profile IDs, route IDs, `eval://` references
+   and connection IDs must come from discovery or returned records in this
+   workspace, not illustrative examples.
 5. **Do not create evaluations to debug auth.** Use `evalrouter whoami`; for an
    expired browser session run `evalrouter login` again. Troubleshoot workspace
    keys only when the user has chosen key-based automation.
@@ -255,17 +257,6 @@ Choose the flow that matches the user's goal and the target environment:
 3. **Onboarded supplier with a verified namespace:** use the separate
    [package publishing workflow](references/publish-benchmark.md). Local
    validation and server submission are not platform admission.
-
-## Repository agents (ACP)
-
-To evaluate an agent program from a GitHub repository (Agent Client Protocol,
-Node/npm runtime), follow https://evalrouter.ai/developers/docs/repository-agents.
-It requires CLI **0.2.0 or later** and a workspace where repository qualification
-is enabled: check `evalrouter agent-builds options --json` first and stop if it is
-disabled. The flow is `agent-builds preview` (quote, no spend) → human approval →
-`agent-builds create` → `agent-builds status` until ready → a separate evaluation
-quote using the returned agent ref and coverage. Qualification and evaluation have
-separate caps and each needs its own approval.
 
 ## Feedback
 
