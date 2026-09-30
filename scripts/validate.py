@@ -161,7 +161,7 @@ def check_command(root: argparse.ArgumentParser, command: str) -> str | None:
         if token.startswith("<"):  # e.g. `evalrouter <command> --help`
             return None
         children = subcommands(parser)
-        if token.startswith("-"):
+        if token.startswith("-") and token != "-":  # a bare - is a stdin value
             flag = token.split("=", 1)[0]
             if flag not in options(parser):
                 return f"{' '.join(path)} has no option {flag}"

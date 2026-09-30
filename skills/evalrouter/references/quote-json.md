@@ -8,8 +8,7 @@ the API's `NewQuote` request. Unknown fields are rejected. The file is capped at
 
 | Field | Required | Shape |
 | --- | --- | --- |
-| `model` | exactly one of `model` / `agent` | Target model, see below |
-| `agent` | exactly one of `model` / `agent` | A ready agent ref from `evalrouter agent-builds status`; needs an environment `selection` |
+| `model` | yes | Target model, see below |
 | `selection` | yes | What to evaluate, see below |
 | `coverage` | no | `{"mode": "sample", "sample_count": N, "seed": S}` or `{"mode": "full"}` |
 | `max_charge_microusd` | yes | Spending cap as a string of integer micro-USD, `"1"` to 12 digits. `"1000000"` = $1 |
@@ -39,17 +38,12 @@ the EvalRouter cap.
 - A universal evaluation reference: `{"eval": "eval://provider/name/version"}`.
   Use an exact reference returned by discovery. The router chooses a registered
   provider; the quote reports actual compatibility and execution selection.
-- An environment, for agents: `{"environment": "family/path@version", "split": "test"}`.
-  For repository agents use the exact `environment_ref` and `split` returned by
-  the ready agent build.
 
 ### `coverage`
 
 - `sample`: `sample_count` 1 to 1000 (default 25), `seed` 0 to 2^32-1 (default 42).
   Results from a sample are a sample, never a full-benchmark score.
 - `full`: every task in the selection.
-- For repository agents, copy the entire returned `evaluation_coverage` object;
-  do not guess tasks, counts or seeds.
 
 ### `concurrency`
 
@@ -65,8 +59,8 @@ reports the admitted run ceiling and per-profile ceilings with reasons:
 | `task_count` | Fewer selected tasks (times attempts) than requested |
 | `budget_limit` | The cap cannot cover that many worst-case samples at once |
 
-Some execution pathways (for example environment selections) reject any
-`concurrency` value with `concurrency_unsupported`; omit the field there.
+Some execution pathways reject any `concurrency` value with
+`concurrency_unsupported`; omit the field there.
 Requires a CLI build whose `evalrouter quote --help` lists `--concurrency`.
 
 ### `output_format`
@@ -86,13 +80,10 @@ Check `evalrouter quote --help` for CLI support; the API field is
 
 ## Reading the response
 
-Top-level fields include `id`, `expires_at`, `plan`,
-`expected_charge_microusd`, `expected_range`,
-`worst_case_charge_microusd`, `estimated_charge_microusd`,
-`max_charge_microusd`, `price_version` and `retention`. The expected fields
-can be absent. `estimated_charge_microusd` is a legacy name for the
-conservative **worst case**, not expected spend. The cap is
-`max_charge_microusd`; actual charges follow usage and cannot exceed it.
-Summarise compatibility, warnings, coverage, expected range and its basis,
-worst case, cap, external charges, concurrency and expiry for the human, then
-wait for explicit approval before `evalrouter run`.
+Top-level fields include `id`, `expires_at`, `plan`, `max_charge_microusd`,
+`price_version` and `retention`. The cap is `max_charge_microusd`; actual
+charges follow usage and cannot exceed it. Do not present pre-run cost
+estimates or forecasts, even if a response still contains such fields.
+Summarise compatibility, warnings, coverage, cap, external charges,
+concurrency and expiry for the human, then wait for explicit approval before
+`evalrouter run`.
