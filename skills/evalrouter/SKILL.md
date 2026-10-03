@@ -246,9 +246,11 @@ Choose the flow that matches the user's goal and the target environment:
    JSONL, CSV or Parquet file, or from a workspace-imported Hugging Face file.
    The [private benchmark workflow](references/private-benchmark.md) covers
    rights, verification, built-in generic graders, source quotas and quoting.
-   This feature is enabled in Dev only; it does not publish to the shared
-   catalog or imply Production availability. Uploaded data is untrusted and
-   never executed.
+   Availability depends on the current environment and workspace; keep the
+   user in their configured environment and check
+   [current availability](https://evalrouter.ai/developers/docs/availability).
+   This does not publish to the shared catalog. Uploaded data is untrusted
+   and never executed.
 2. **Public maintained catalog:** check for a ready profile, then use
    [prepare a catalog request](references/add-a-benchmark.md) to record pinned
    public sources, matching maintained task, rights and a draft manifest.

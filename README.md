@@ -38,9 +38,11 @@ Ask your agent, for example:
 > Can my Hugging Face dataset ORG/DATASET run on EvalRouter? Check whether I
 > should create a workspace-private benchmark or request public catalog review.
 
-Workspace-private benchmark creation is enabled in Dev only. Public catalog
-admission remains reviewed by EvalRouter; preparing a draft does not publish
-it. Onboarded suppliers use a separate package workflow.
+Workspace-private benchmark availability depends on the current environment
+and workspace. Keep the user in their configured environment and check the
+[current availability](https://evalrouter.ai/developers/docs/availability).
+Public catalog admission remains reviewed by EvalRouter; preparing a draft
+does not publish it. Onboarded suppliers use a separate package workflow.
 
 The skill never starts paid work without your explicit approval of a quote, and
 uses browser sign-in by default. Workspace keys are for explicit automation;
