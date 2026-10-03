@@ -3,9 +3,10 @@
 Use this when the user wants to evaluate their own dataset inside their
 workspace. Read the current [private benchmark guide](https://evalrouter.ai/developers/docs/byob)
 and [availability](https://evalrouter.ai/developers/docs/availability) first.
-The feature is enabled in **Dev only**. Do not direct a Production account to
-Dev or imply this creates a public catalog entry. A private benchmark is
-visible, quotable and runnable only in its workspace.
+Availability depends on the current environment and workspace. Keep the user in
+their configured environment; do not redirect a Production account to Dev or
+imply this creates a public catalog entry. A private benchmark is visible,
+quotable and runnable only in its workspace.
 
 ## Access and data
 
@@ -81,7 +82,7 @@ refused. Follow the [import guide](https://evalrouter.ai/developers/docs/hugging
 for availability, permissions and gated datasets; never place an HF token in
 a manifest or command line.
 
-The workspace can have five active uploaded sources and five active private
+The workspace can have 1,000 active uploaded sources and 1,000 active private
 benchmarks. List sources before uploading again:
 
 ```sh
@@ -95,5 +96,5 @@ but does not free its uploaded source slot. Archive only when the user wants
 that lifecycle change. Source files still count toward storage after archive.
 
 Private results cannot be shared through public links. Model requests still
-send rendered rows to the selected model provider. Production availability,
-custom grader code, model judges and partial-credit scoring are not supported.
+send rendered rows to the selected model provider. Custom grader code, model
+judges and partial-credit scoring are not supported by this data-file flow.
