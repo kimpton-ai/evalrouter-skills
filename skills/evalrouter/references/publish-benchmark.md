@@ -105,5 +105,5 @@ reason. `--permissions` is `discover`, `execute` or both (default both).
 Revoking blocks new quotes from that workspace.
 
 Once qualified and granted, the benchmark appears through `evalrouter catalog`
-for permitted workspaces and is quoted and run with the normal
-quote → approval → run flow in SKILL.md section B.
+for permitted workspaces and runs with the normal
+wallet-funded evaluation flow in SKILL.md section B.

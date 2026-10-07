@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "evalrouter",
-      "description": "Run EvalRouter benchmarks behind a reviewed quote and spending cap, read and export results, and check or prepare your own benchmark for the EvalRouter catalog.",
+      "description": "Run requested EvalRouter evaluations using wallet credit, compare and export results, and check or prepare benchmarks for the EvalRouter catalog.",
       "source": "./"
     }
   ]
