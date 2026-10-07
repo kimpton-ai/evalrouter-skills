@@ -13,7 +13,7 @@ quotable and runnable only in its workspace.
 Sign in with `evalrouter login`. A device grant created before benchmark
 importing was added may need a new login. Member, admin or owner access is
 required to create a benchmark; viewers can read. Automation keys need
-`benchmarks:submit` for creation and `eval:read`/`eval:write` for quotes and
+`benchmarks:submit` for creation and `eval:read`/`eval:write` for evaluation and
 runs. `eval:write` alone does not grant import permission.
 
 Use a JSONL, CSV or Parquet file of at most 64 MiB and 100,000 rows. Confirm
@@ -67,7 +67,7 @@ evalrouter benchmark list
 ```
 
 Use its returned `byob-<uuid>@1` profile ID in the normal section B
-quote → human approval → run flow. Creation itself does not start inference.
+wallet-funded evaluation flow. Creation itself does not start inference.
 Report its status accurately; an ID from this workspace is not a public
 catalog or another workspace's benchmark.
 

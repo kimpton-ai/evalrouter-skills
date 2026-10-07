@@ -28,7 +28,7 @@ evalrouter catalog --runner inspect --json
 ```
 
 If a matching profile is `ready_for_quote`, stop here and use the normal
-quote, approval, run flow in SKILL.md section B. Read the profile's source,
+evaluation flow in SKILL.md section B. Read the profile's source,
 split, metrics and license before telling the user it is "their" benchmark. A
 catalog entry with the same name can use a different split or protocol.
 
@@ -191,8 +191,8 @@ tool for it. Adding the benchmark is a reviewed decision by the EvalRouter
 team; it can be declined, and there is no timeline to promise.
 
 After it is added, it appears in `evalrouter catalog`. Running it is ordinary
-paid work: quote first, then the user's explicit approval of that quote and
-its cap (SKILL.md section B).
+paid work using available wallet credit when requested by the user
+(SKILL.md section B).
 
 ## Other paths and limits
 

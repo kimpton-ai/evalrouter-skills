@@ -1,6 +1,6 @@
 {
   "name": "evalrouter",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "EvalRouter agent skills: evaluate models and prepare benchmarks for EvalRouter.",
   "author": {
     "name": "EvalRouter",

@@ -2,7 +2,7 @@
 name: evalrouter
 description: >
   Evaluate models with EvalRouter. Use for CLI sign-in, catalog discovery,
-  quotes and spending caps, runs, progress, comparisons, results and exports.
+  runs, progress, comparisons, results, wallet usage and exports.
   Help create workspace-private benchmarks where enabled,
   prepare public catalog requests, or publish a supplier package only for an
   onboarded supplier. Report EvalRouter defects through feedback.
@@ -12,8 +12,8 @@ description: >
 
 EvalRouter runs versioned evaluations against managed model routes or your own
 model endpoints. You work through the `evalrouter` CLI (Python package
-`evalrouter`). Every paid run is bounded by a **quote**: a frozen plan with a
-spending cap that a human reviews before anything starts.
+`evalrouter`). New one-time evaluations use available workspace wallet credit;
+they do not require a quote or a customer spending cap.
 
 You, the coding agent, use the CLI on the user's behalf; the thing evaluated is
 a model. Building or evaluating agent programs or executable benchmarks from a
@@ -38,16 +38,27 @@ carry current flags and limits. Read the relevant page before acting, and run
 - Feedback: https://evalrouter.ai/developers/docs/feedback
 - Public OpenAPI: https://evalrouter.ai/developers/docs/openapi.json
 
-## Safety rules (non-negotiable)
+## Persistent agent installation
 
-1. **Never start paid work without explicit human approval of a specific quote.**
-   `evalrouter run` starts quoted server-side work. Preparing a benchmark never
-   justifies a paid run: any run needs its own quote, cap and approval. Show the
-   quote first, then stop and wait for a clear "yes, run quote Q under cap $X".
-   Silence, a general "go ahead" given before the quote existed, or approval of
-   a different quote does not count. Supplier
-   `evalrouter benchmark submit` needs approval of the exact package; it does
-   not authorize later paid evaluation.
+For agent setup, save this document as a persistent personal skill before
+reporting setup complete:
+
+- Codex: `~/.agents/skills/evalrouter/SKILL.md`
+- Claude Code: `~/.claude/skills/evalrouter/SKILL.md`
+
+Download `https://evalrouter.ai/skill.md` to the current agent's path and verify
+that the saved file contains the skill's name, description and instructions.
+Reading a URL for the current session alone is not installation. Follow section
+A to install the CLI and verify sign-in. Report the installed path, CLI
+availability and sign-in status separately. Stop after setup; do not evaluate.
+
+## Working rules
+
+1. **Follow the user's requested scope.** A request to run or compare models
+   authorizes that evaluation. Proceed without asking for approval of a quote or
+   adding a spending cap. A setup, discovery, preview or analysis-only request
+   does not authorize inference. Do not expand coverage, start recurring work,
+   buy credit, or retry uncertain external work beyond the user's request.
 2. **Keep credentials private.** Browser sign-in is the default; the CLI handles
    storing and refreshing its session. Never ask for a password, token, or API key
    in chat or put one in command arguments, files you create, screenshots, or
@@ -138,86 +149,67 @@ own endpoint instead of a managed route, use `evalrouter connections create`
 (the provider key is never a flag: the human types it at the hidden prompt, or
 pipes it with `--key-stdin`, or names an env var with `--key-env`; rotate later
 with `evalrouter connections update CONNECTION_ID --rotate-key`), then
-`evalrouter connections check CONNECTION_ID` before quoting. A check can send a
+`evalrouter connections check CONNECTION_ID` before evaluation. A check can send a
 small model request that their provider bills.
 
 The API also accepts immutable `eval://provider/name/version` references.
-Obtain the exact reference from discovery and quote its actual coverage and
+Obtain the exact reference from discovery and check its actual coverage and
 compatibility; do not turn a catalog name into a guessed reference.
 
-**2. Write `quote.json`.** Minimal shape (full field reference in
-[references/quote-json.md](references/quote-json.md)):
-
-```json
-{
-  "model": {"kind": "managed", "route_id": "MODEL_ROUTE_ID"},
-  "selection": {"profile_ids": ["BENCHMARK_PROFILE_ID"]},
-  "coverage": {"mode": "sample", "sample_count": 3, "seed": 42},
-  "max_charge_microusd": "1000000"
-}
-```
-
-Money is a string of integer micro-USD: `"1000000"` is $1. Start small: a
-sample with a low cap, unless the user asks for full coverage.
-
-**3. Quote.** This starts no paid work:
+**2. Run the requested evaluation.** Use the exact profile and model IDs from
+catalog discovery. For a sample comparison, run the models together on the
+same tasks and seed:
 
 ```sh
-evalrouter quote --config quote.json --json > quote-response.json
+evalrouter run BENCHMARK_PROFILE_ID --model MODEL_ROUTE_A --model MODEL_ROUTE_B --mode matched --sample 25 --seed 42 --yes --json
 ```
 
-Optionally `--concurrency auto|max|1..100` (requires a CLI build whose
-`evalrouter quote --help` lists it). Summarise for the human, from the response:
+For one model, use one `--model`. Respect requested coverage; when the user asks
+for a sample without a size, the CLI default is 25 tasks with seed 42. Do not
+silently replace a full evaluation with a sample. Keep model settings at their
+route defaults unless the user requested an override, and record the settings
+in the comparison. Check `evalrouter run --help` for installed flags. `--yes`
+satisfies the CLI's terminal confirmation for work the user already requested;
+it does not require another conversation turn. `--dry-run` previews without
+starting work when the user asks for a preview or compatibility needs checking.
 
-- **Compatibility and warnings**: resolve incompatibility before anything else.
-- **Coverage**: sample (how many tasks, which seed) or full. A sample is not a
-  full-benchmark score.
-- **Cap**: the enforced `max_charge_microusd`. Actual charges follow usage and
-  cannot exceed it; the cap is a ceiling, not a price. Connected endpoints bill
-  separately, outside EvalRouter's cap. Do not present pre-run cost estimates
-  or forecasts, even if a response still contains such fields.
-- **Concurrency**: the requested value and the admitted run ceiling, per
-  profile. The ceiling can be lower than requested; the quote lists why:
-  conservative automatic choice (`auto`), adapter limit, gateway limit, the
-  selected task count, or the spending cap. These are ceilings, not live counts.
-- **Expiry** (`expires_at`) and the quote `id`.
-- **Output format**, when selectable: the quote freezes it and scores from
-  different formats must not be ranked together.
+Do not send `--max-cost`, `max_charge_microusd`, `budget_usd` or per-model caps for
+new one-time evaluations. Available wallet credit funds mandatory fees and
+pending operations. If credit cannot back another operation, new work stops
+and results can be partial. An in-flight usage charge may settle above its hold
+and leave the wallet negative, so wallet credit is not a guaranteed maximum.
+Connected providers bill separately. Explain this briefly when relevant; do not
+invent cost estimates, a dollar ceiling or an approval step.
 
-If anything should change (model, coverage, cap), write a new quote; quotes are
-frozen. Retrieve a saved one with `evalrouter quote --id QUOTE_ID`.
+For a multi-benchmark job, use `evalrouter evaluation-jobs --help` and the
+[current CLI documentation](https://evalrouter.ai/developers/docs/cli).
+Preflight resolves the compatible pairs and coverage before launch; use
+`evaluation-jobs start --yes` with a persisted idempotency key for the requested
+work. Explicit provider-cost acknowledgements required by the API still apply.
+If the installed CLI lacks the documented workflow, upgrade it; do not fall
+back to a cap-and-quote flow for a new one-time job. Report unavailable hosted
+features instead of switching environments.
 
-**4. STOP. Get explicit approval.** Ask: "Run quote `<id>` with a cap of `$X`?"
-Do not continue until the human approves that quote and cap.
+**3. Recover and follow progress.** The guided CLI persists the operation key;
+repeating the same command after a dropped response recovers the same work.
+For explicit job starts, save an idempotency key before submitting and reuse the
+same key and body on a transport retry. A new key or `--new` can start separate,
+separately charged work. Progress counts processed tasks, not a score.
+Interrupting a local wait does not stop server work. Follow an existing run with
+`evalrouter wait RUN_ID` or `evalrouter status RUN_ID`; cancel only when the user
+intends cancellation. Adding credit does not automatically resume unfinished
+work. Do not continue or rerun it unless that is within the user's request;
+uncertain prior external effects require explicit review.
 
-**5. Run once, with a durable operation key.** Save the quote ID and an
-idempotency key (for example in a local notes file) *before* submitting:
-
-```sh
-evalrouter run --quote QUOTE_ID --idempotency-key OPERATION_KEY --wait --json
-```
-
-`--wait` follows progress (`--wait-timeout`, default 3600s; `--poll-interval`;
-`--progress auto|plain|off`). A progress percentage counts processed samples; it
-is not a score. If the response is lost, retry with the **same** quote and key; a
-new key can start separate, separately charged work. Interrupting a local wait
-does not stop server work. To follow later use `evalrouter wait RUN_ID` or
-`evalrouter status RUN_ID`; to stop, `evalrouter cancel RUN_ID` only when the human
-intends cancellation.
-
-For a person at a terminal, `evalrouter run BENCHMARK --model MODEL` guides
-discovery, shows a free quote, asks for a cap and offers Start run or Cancel.
-`--dry-run` stops at the quote. The CLI stores the accepted quote and operation
-key for recovery. Scripts and agents do not get that prompt; use the explicit
-quote flow above and never add `--yes` before approval. For an earlier run,
-`run --from` is a new, independently charged evaluation; `resume` is a
-separate, availability-gated continuation workflow. See the current CLI docs.
+Existing quoted runs retain their frozen terms. Use
+[references/quote-json.md](references/quote-json.md) only for an existing quote
+or an explicitly selected legacy workflow, not as the default launch path.
 
 Exit codes: 0 success; 1 API/transport error or failed run; 2 invalid input or
 rejected request; 4 partial or cancelled waited run; 5 declined confirmation
 with nothing started; 6 local watch disconnected while server work continues.
 
-**6. Results and exports.**
+**4. Results and exports.**
 
 ```sh
 evalrouter results RUN_ID --json
@@ -245,7 +237,7 @@ Choose the flow that matches the user's goal and the target environment:
 1. **Workspace-private benchmark, where enabled:** create one from a local
    JSONL, CSV or Parquet file, or from a workspace-imported Hugging Face file.
    The [private benchmark workflow](references/private-benchmark.md) covers
-   rights, verification, built-in generic graders, source quotas and quoting.
+   rights, verification, built-in generic graders, source quotas and evaluation.
    Availability depends on the current environment and workspace; keep the
    user in their configured environment and check
    [current availability](https://evalrouter.ai/developers/docs/availability).
@@ -276,9 +268,9 @@ the report contents and the command.
   unparseable response; docs that contradict the shipped command.
 - **Not a defect by itself:** signed out, insufficient credit, a validation
   error caused by your input, a feature disabled for this workspace, a rate
-  limit, a refused cap, or a low score. Resolve these locally or tell the user.
+  limit or a low score. Resolve these locally or tell the user.
 - **Contents:** only the behavior, expected versus observed, the command
-  shape with placeholders (`evalrouter quote --config FILE`), and the error
+  shape with placeholders (`evalrouter run BENCHMARK --model MODEL`), and the error
   code, request ID, HTTP status and route. Leave out every identifier and value
   from this workspace or the user's arguments (route, profile, quote, run,
   workspace and connection IDs, config contents, file paths), raw output,

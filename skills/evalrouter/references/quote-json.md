@@ -1,4 +1,9 @@
-# quote.json reference
+# Legacy quote.json reference
+
+Use this reference only for existing quoted runs or an explicitly selected
+legacy workflow. New one-time evaluations use wallet credit without quotes or
+customer caps; follow [SKILL.md](../SKILL.md) section B.
+
 
 `evalrouter quote --config FILE` (or `--config -` for stdin) sends one JSON object,
 the API's `NewQuote` request. Unknown fields are rejected. The file is capped at
@@ -84,6 +89,6 @@ Top-level fields include `id`, `expires_at`, `plan`, `max_charge_microusd`,
 `price_version` and `retention`. The cap is `max_charge_microusd`; actual
 charges follow usage and cannot exceed it. Do not present pre-run cost
 estimates or forecasts, even if a response still contains such fields.
-Summarise compatibility, warnings, coverage, cap, external charges,
-concurrency and expiry for the human, then wait for explicit approval before
-`evalrouter run`.
+Summarise compatibility, warnings, coverage, the frozen cap, external charges,
+concurrency and expiry. Run only within the user's requested scope; a request to
+run the evaluation does not require a separate quote-approval turn.

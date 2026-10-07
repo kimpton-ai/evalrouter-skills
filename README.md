@@ -1,7 +1,7 @@
 # EvalRouter Agent Skills
 
 Agent skills for [EvalRouter](https://evalrouter.ai): run versioned evaluations
-behind a reviewed quote and spending cap, read and compare results, create
+using available wallet credit, read and compare results, create
 workspace-private benchmarks where enabled, and prepare public catalog or
 onboarded supplier submissions.
 
@@ -33,7 +33,7 @@ Select your agent when prompted. Installation is project-local by default; add
 Ask your agent, for example:
 
 > Use EvalRouter to run a small sample of a ready benchmark against a managed
-> model. Show me the quote and wait for my approval before running anything.
+> model, then open the report.
 
 > Can my Hugging Face dataset ORG/DATASET run on EvalRouter? Check whether I
 > should create a workspace-private benchmark or request public catalog review.
@@ -44,13 +44,14 @@ and workspace. Keep the user in their configured environment and check the
 Public catalog admission remains reviewed by EvalRouter; preparing a draft
 does not publish it. Onboarded suppliers use a separate package workflow.
 
-The skill never starts paid work without your explicit approval of a quote, and
-uses browser sign-in by default. Workspace keys are for explicit automation;
+A request to run an evaluation authorizes that work without a separate quote
+approval. Setup and discovery do not start inference. The skill uses browser
+sign-in by default. Workspace keys are for explicit automation;
 the skill never asks you to paste credentials into chat.
 
 | Skill | Purpose |
 |---|---|
-| [evalrouter](skills/evalrouter/SKILL.md) | Sign in, quote and run evaluations, read results, prepare private or public benchmark workflows |
+| [evalrouter](skills/evalrouter/SKILL.md) | Sign in and run wallet-funded evaluations, read results, prepare private or public benchmark workflows |
 
 ## Development
 
