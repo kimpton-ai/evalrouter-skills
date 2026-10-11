@@ -44,6 +44,10 @@ and workspace. Keep the user in their configured environment and check the
 Public catalog admission remains reviewed by EvalRouter; preparing a draft
 does not publish it. Onboarded suppliers use a separate package workflow.
 
+Turning an app's traces into a benchmark and tuning a repository's agent are
+enabled on Dev and are not yet enabled in Production. A Tune sweep starts only
+after you approve its spending cap.
+
 A request to run an evaluation authorizes that work without a separate quote
 approval. Setup and discovery do not start inference. The skill uses browser
 sign-in by default. Workspace keys are for explicit automation;
@@ -51,7 +55,7 @@ the skill never asks you to paste credentials into chat.
 
 | Skill | Purpose |
 |---|---|
-| [evalrouter](skills/evalrouter/SKILL.md) | Sign in and run wallet-funded evaluations, read results, prepare private or public benchmark workflows |
+| [evalrouter](skills/evalrouter/SKILL.md) | Sign in and run wallet-funded evaluations, read results, prepare private or public benchmark workflows, turn app traces into a benchmark, tune a repository's agent and open a pull request |
 
 ## Development
 
