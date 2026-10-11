@@ -5,7 +5,9 @@ description: >
   runs, progress, comparisons, results, wallet usage and exports.
   Help create workspace-private benchmarks where enabled,
   prepare public catalog requests, or publish a supplier package only for an
-  onboarded supplier. Report EvalRouter defects through feedback.
+  onboarded supplier. Where enabled, turn an app's traces into a private
+  benchmark, or tune a repository's agent and open a pull request with the
+  result. Report EvalRouter defects through feedback.
 ---
 
 # Evaluate with EvalRouter
@@ -16,9 +18,12 @@ model endpoints. You work through the `evalrouter` CLI (Python package
 they do not require a quote or a customer spending cap.
 
 You, the coding agent, use the CLI on the user's behalf; the thing evaluated is
-a model. Building or evaluating agent programs or executable benchmarks from a
-code repository is not a supported public workflow. Say so if asked, and don't
-attempt it, even if a CLI build lists related commands.
+a model. Two repository workflows are supported where they are enabled: turning
+an app's traces into a private benchmark (section D) and tuning a Python
+LangGraph agent and opening a pull request with the result (section E). Other
+ways of building or evaluating agent programs or executable benchmarks from a
+code repository are not supported public workflows. Say so if asked, and don't
+attempt them, even if a CLI build lists related commands.
 
 **Check current availability before acting.** The API contract includes routes
 that may not be enabled for this workspace or in Production. The live docs
@@ -35,6 +40,8 @@ carry current flags and limits. Read the relevant page before acting, and run
 - Model API (direct HTTP): https://evalrouter.ai/developers/docs/model-api
 - Private benchmarks: https://evalrouter.ai/developers/docs/byob
 - Hugging Face imports: https://evalrouter.ai/developers/docs/huggingface
+- Traces to a benchmark: https://evalrouter.ai/developers/docs/trace-datasets
+- Tune: https://evalrouter.ai/developers/docs/tune
 - Feedback: https://evalrouter.ai/developers/docs/feedback
 - Public OpenAPI: https://evalrouter.ai/developers/docs/openapi.json
 
@@ -59,6 +66,8 @@ availability and sign-in status separately. Stop after setup; do not evaluate.
    adding a spending cap. A setup, discovery, preview or analysis-only request
    does not authorize inference. Do not expand coverage, start recurring work,
    buy credit, or retry uncertain external work beyond the user's request.
+   Tune sweeps (section E) are the exception: each one has a spending cap, and
+   the human approves that cap before the sweep starts.
 2. **Keep credentials private.** Browser sign-in is the default; the CLI handles
    storing and refreshing its session. Never ask for a password, token, or API key
    in chat or put one in command arguments, files you create, screenshots, or
@@ -251,6 +260,191 @@ Choose the flow that matches the user's goal and the target environment:
 3. **Onboarded supplier with a verified namespace:** use the separate
    [package publishing workflow](references/publish-benchmark.md). Local
    validation and server submission are not platform admission.
+
+## D. Turn an app's traces into a benchmark
+
+This workflow is enabled on Dev (https://dev.evalrouter.ai) and is not yet
+enabled in Production. If Production reports a command as unavailable, tell the
+user. Use Dev only when the user directs it, with the API base URL from the Dev
+documentation passed as `--base-url`.
+
+Sections D and E need a CLI release that includes the `traces`, `datasets` and
+`improvements` command groups. Check with `evalrouter traces --help`. If the
+installed CLI lacks them after `uv tool upgrade evalrouter`, tell the user that
+the workflow is not yet available in their CLI.
+
+**1. Connect.** An API key needs the `eval:write` and `traces:write` scopes; a
+CLI sign-in needs the admin or owner role in the workspace.
+
+```sh
+evalrouter traces connect --name APP_NAME --env-file .env.local --json
+```
+
+The ingest key is shown only once. Always pass `--env-file`: the CLI then
+appends `EVALROUTER_TRACE_CONNECTION_ID` and `EVALROUTER_TRACE_KEY` to that file
+with mode 0600 and does not print the key. Without it the key appears in the
+output. Check that git ignores the file (`git check-ignore .env.local`) before
+you run the command. Never read the key back into the conversation, logs or
+commits.
+
+**2. Capture traces.** Instrument the app with the EvalRouter SDK using those two
+variables. Set the root span input to the user's request and the root span
+output to the app's final answer. Plain text works best. Once the app has served
+traffic, check what has arrived:
+
+```sh
+evalrouter traces connections list --json
+evalrouter traces list --connection CONNECTION_ID --json
+```
+
+**3. Create a dataset and import traces.** Importing records the workspace's
+attestation that it may evaluate models on this data, so confirm that with the
+user before you run it.
+
+```sh
+evalrouter datasets create --name "APP_NAME production" --json
+evalrouter datasets import-traces DATASET_ID --connection CONNECTION_ID --limit 200 --json
+```
+
+Each recent completed trace becomes one held-out example. The root span input
+is the task and the root span output is the reference answer. Traces without
+both, traces whose root span failed and oversized traces are skipped and counted
+in `skipped`.
+
+**4. Approve and freeze a version.** Before approving, show the person what they
+are approving: the created and skipped counts, and the examples themselves on
+the dataset's page in the browser. Approve only after they agree. `--all`
+approves every pending example at its current draft. To approve a reviewed
+subset, repeat `--example EXAMPLE_ID` instead.
+
+```sh
+evalrouter datasets approve DATASET_ID --all --json
+evalrouter datasets versions create DATASET_ID --json
+```
+
+**5. Build the benchmark.** Pass the version number returned by
+`versions create` (or the version ID). Choose the judge route from
+`evalrouter models list --json`.
+
+```sh
+evalrouter datasets benchmark DATASET_ID 1 --grader match-production --judge-route JUDGE_ROUTE --json
+```
+
+The `match-production` grader asks a managed judge model whether each answer is
+at least as correct, complete and helpful as the app's answer for the same
+input. Each grade is a metered judge call. `--grader exact-match` compares text
+and needs no judge. An API key needs the `benchmarks:submit` scope for this
+step. The command returns `benchmark_id`.
+
+**6. Run several models.** Run each model the user asked for on the same
+benchmark at full coverage. The rules of section B apply: the user's request
+authorizes these runs and wallet credit funds them.
+
+```sh
+evalrouter run BENCHMARK_ID --model MODEL_ROUTE_A --full --yes --json
+evalrouter run BENCHMARK_ID --model MODEL_ROUTE_B --full --yes --json
+evalrouter runs results RUN_ID --json
+```
+
+In the public CLI build that includes these commands, each model runs
+separately. The internal build also has evaluation jobs, where
+`evaluation-jobs results --rank` orders models by score and then by spend. When
+that command is absent, compare the run results yourself.
+
+**7. Recommend a model.** Order the models by score, then by cost. The usual
+recommendation is the cheapest model whose score is within one standard error
+of the best score. A judge that cannot decide leaves that case ungraded, so
+report coverage, errors and spend next to each score, and say so when a run is
+partial.
+
+## E. Tune a repository's agent and open a pull request
+
+Tune and improvement projects are a preview. They are enabled on Dev
+(https://dev.evalrouter.ai) and are not yet enabled in Production. The Dev rule
+from section D applies.
+
+Requirements:
+
+- A local clone of a Python repository that uses uv and LangGraph, with
+  `langgraph.json` and `uv.lock`.
+- Model roles declared in `evalrouter-model-policy.json` and read in the code
+  with `from evalrouter_model_policy import get_model`. Tune changes only
+  declared roles. Hard-coded model names stay as they are.
+- An active trace connection for the agent (section D). `improvements create`
+  uses the workspace's only active connection. When there are several, pass
+  `--trace-connection CONNECTION_ID`.
+- The EvalRouter GitHub App, connected once in the browser at
+  `/settings/integrations` on the EvalRouter site with access to the
+  repository. This is the only browser step. When the app cannot read the
+  repository, `evalrouter improvements create` stops with
+  `github_repository_unreadable` and prints the link; give it to the user.
+
+EvalRouter only reads the repository and never needs write access to it. You
+open the pull request with the user's own git and GitHub CLI credentials.
+
+**1. Create and prepare the project.**
+
+```sh
+evalrouter improvements create --repo OWNER/NAME --ref main --json
+evalrouter improvements prepare PROJECT_ID --json
+evalrouter improvements get PROJECT_ID --json
+```
+
+`create` pins the commit of `--ref`. `prepare` fetches that commit and finds the
+LangGraph entrypoint from `langgraph.json` and `uv.lock`. Confirm with `get`
+that preparation finished before you continue.
+
+**2. Prepare a dataset version.** Tune needs an approved dataset version with
+both validation and held-out examples. Trace imports create held-out examples
+only, so before approval the person moves part of them to the validation split
+in the dataset's example editor in the browser. Then approve and freeze a
+version as in section D, step 4. Use the version ID returned by
+`evalrouter datasets versions create DATASET_ID` or listed by
+`evalrouter datasets versions list DATASET_ID --json`. A version without both splits is rejected with
+`tune_workload_split_unavailable`.
+
+**3. Quote, get the cap approved, and run the sweep.** Every Tune sweep has a
+spending cap. Ask the person for the cap, show them the quote made with it, and
+start the sweep only after they approve that cap.
+
+```sh
+evalrouter tune start --agent-project PROJECT_ID --dataset-version VERSION_ID --json
+evalrouter tune quote SESSION_ID --max-cost USD_CAP --json
+evalrouter tune start-sweep SESSION_ID --json
+evalrouter tune status SESSION_ID --json
+evalrouter tune result SESSION_ID --json
+```
+
+Repeat `status` about once a minute until the session is complete. Candidates
+run on the validation examples. Tune then compares one finalist with the
+current agent on the held-out examples. Incomplete execution cannot establish a
+successful replacement, so report it as incomplete.
+
+**4. Export the patch.**
+
+```sh
+evalrouter tune export SESSION_ID --patch ../tune.patch --json
+```
+
+The patch applies at `source_commit_sha` in the export. When the result keeps
+the current agent, the command stops with `tune_no_change`. Tell the user; there
+is nothing to open.
+
+**5. Open the pull request.** Write `../tune-summary.md` from `tune result`: the
+held-out quality and cost of the current agent and of the candidate, and the
+session ID. Keep both files outside the clone. Then, from the clone:
+
+```sh
+git fetch origin
+git switch -c evalrouter/tune-SESSION_ID SOURCE_COMMIT_SHA
+git apply --index ../tune.patch
+git commit -m "Apply EvalRouter Tune result SESSION_ID"
+git push -u origin evalrouter/tune-SESSION_ID
+gh pr create --title "Apply EvalRouter Tune result" --body-file ../tune-summary.md
+```
+
+Opening the pull request does not merge or deploy it. Leave review and merge to
+the person.
 
 ## Feedback
 
