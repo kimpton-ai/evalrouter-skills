@@ -49,21 +49,22 @@ template; the answer, row ID and group must not. A benchmark version is
 immutable. Changing its data, template or grader creates another benchmark.
 
 ```sh
-evalrouter benchmark create manifest.json --dry-run
+evalrouter benchmarks private create manifest.json --dry-run
 ```
 
 The preview checks every row and reports rendered examples and mapping errors.
 For a local `data` file, even `--dry-run` uploads and verifies the file; it
 creates no benchmark or paid evaluation, but **consumes an active source slot**.
-Do not repeat it casually. A completed source can be reused in a later
+Do not repeat it casually: to iterate, upload once with
+`evalrouter benchmarks uploads create FILE` and name that source. A completed source can be reused in a later
 manifest as `"source": "workspace://<upload_id>/<file>"` without another
 upload.
 
 After reviewing the preview and rights, create the private benchmark:
 
 ```sh
-evalrouter benchmark create manifest.json
-evalrouter benchmark list
+evalrouter benchmarks private create manifest.json
+evalrouter benchmarks private list
 ```
 
 Use its returned `byob-<uuid>@1` profile ID in the normal section B
@@ -73,7 +74,7 @@ catalog or another workspace's benchmark.
 
 ## Hugging Face and source slots
 
-Where Hugging Face import is enabled, `evalrouter benchmark import` pins a
+Where Hugging Face import is enabled, `evalrouter benchmarks imports huggingface` pins a
 dataset revision to a 40-character commit, verifies declared files and
 returns a workspace-private receipt. Use the exact `hf://...@<commit>/<path>`
 source, SHA-256 and byte count from that receipt in the manifest. A branch
@@ -86,12 +87,12 @@ The workspace can have 1,000 active uploaded sources and 1,000 active private
 benchmarks. List sources before uploading again:
 
 ```sh
-evalrouter benchmark sources --status completed
+evalrouter benchmarks uploads list --status completed
 ```
 
-`evalrouter benchmark archive-source <upload_id>` permanently prevents new
+`evalrouter benchmarks uploads archive <upload_id>` permanently prevents new
 manifests from using that source; existing private benchmarks and runs remain.
-`evalrouter benchmark archive byob-<uuid>@1` stops new runs of the benchmark
+`evalrouter benchmarks private archive byob-<uuid>@1` stops new runs of the benchmark
 but does not free its uploaded source slot. Archive only when the user wants
 that lifecycle change. Source files still count toward storage after archive.
 

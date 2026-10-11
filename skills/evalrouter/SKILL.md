@@ -12,13 +12,13 @@ description: >
 
 EvalRouter runs versioned evaluations against managed model routes or your own
 model endpoints. You work through the `evalrouter` CLI (Python package
-`evalrouter`). New one-time evaluations use available workspace wallet credit;
-they do not require a quote or a customer spending cap.
+`evalrouter`). Evaluations draw on the workspace's wallet credit; a spending cap
+(`--max-cost`) is optional.
 
-You, the coding agent, use the CLI on the user's behalf; the thing evaluated is
-a model. Building or evaluating agent programs or executable benchmarks from a
-code repository is not a supported public workflow. Say so if asked, and don't
-attempt it, even if a CLI build lists related commands.
+You, the coding agent, use the CLI on the user's behalf. The thing evaluated is
+a model, or an agent run with `--agent` (section B). Building executable
+benchmarks from a code repository is not a supported public workflow. Say so if
+asked, and don't attempt it, even if a CLI build lists related commands.
 
 **Check current availability before acting.** The API contract includes routes
 that may not be enabled for this workspace or in Production. The live docs
@@ -55,9 +55,11 @@ availability and sign-in status separately. Stop after setup; do not evaluate.
 ## Working rules
 
 1. **Follow the user's requested scope.** A request to run or compare models
-   authorizes that evaluation. Proceed without asking for approval of a quote or
-   adding a spending cap. A setup, discovery, preview or analysis-only request
-   does not authorize inference. Do not expand coverage, start recurring work,
+   authorizes that evaluation; it needs no separate approval turn and no
+   spending cap. Show the user the quoted price. When they ask what a run would
+   cost, quote it with `--dry-run`, which starts nothing. Pass `--max-cost` only
+   with a cap the user gave; never invent one (section B). A setup, discovery,
+   preview or analysis-only request does not authorize inference. Do not expand coverage, start recurring work,
    buy credit, or retry uncertain external work beyond the user's request.
 2. **Keep credentials private.** Browser sign-in is the default; the CLI handles
    storing and refreshing its session. Never ask for a password, token, or API key
@@ -128,107 +130,108 @@ start no paid work; evaluation execution needs available workspace credit.
 Production is the default API. If a feature is unavailable there, do not infer
 that Dev is an acceptable target without the user's direction.
 
-Global flags on every command: `--json` (one JSON result on stdout, progress on
-stderr; prefer it when you parse output), `--timeout SECONDS`, `--base-url`,
-`--workspace-id`.
+Commands are `evalrouter <noun> <verb>` (`benchmarks list`, `quotes create`,
+`runs create`, `runs results`); `evalrouter --help` lists them. Settings on every
+command: `--json` (one JSON document on stdout; an error is one JSON object on
+stderr with stdout empty; prefer it when you parse output), `--no-input` (never
+prompt; implied by `--json`, CI and agent environments), `--timeout SECONDS`,
+`--base-url`, `--workspace-id`, `--profile`. Lists read `--limit` rows (default
+50); `--all` reads every page and `--cursor` continues from `next_cursor`.
 
 ## B. Run an existing benchmark
 
 **1. Discover.** Pick a benchmark profile and a model from real responses:
 
 ```sh
-evalrouter catalog --status active --json
-evalrouter catalog --slug BENCHMARK_SLUG --json
-evalrouter catalog --models --json
+evalrouter benchmarks list --json
+evalrouter benchmarks get BENCHMARK_SLUG --json
+evalrouter models list --json
 ```
 
 Use a profile whose `quote_availability.status` is `ready_for_quote`; an
-`active` listing alone does not mean it can run. Filters: `--query`, `--runner
-inspect|lm-eval`, `--capability`, `--cursor`/`--limit`. To evaluate the user's
-own endpoint instead of a managed route, use `evalrouter connections create`
-(the provider key is never a flag: the human types it at the hidden prompt, or
-pipes it with `--key-stdin`, or names an env var with `--key-env`; rotate later
-with `evalrouter connections update CONNECTION_ID --rotate-key`), then
+`active` listing alone does not mean it can run. To evaluate the user's own
+endpoint instead of a managed route, use `evalrouter connections create` (the
+provider key is never a flag: the human types it at the hidden prompt, or pipes
+it with `--key-stdin`, or names an env var with `--key-env`; rotate later with
+`evalrouter connections update CONNECTION_ID --rotate-key`), then
 `evalrouter connections check CONNECTION_ID` before evaluation. A check can send a
-small model request that their provider bills.
+small model request that their provider bills. A remote agent is a connection
+with `--protocol a2a`; run it with `evalrouter run BENCHMARK --agent
+remote:CONNECTION_NAME`.
+
+To evaluate an agent on this machine, `evalrouter agents list` shows the ACP
+Registry agents (offline, from the bundled snapshot) with their integrity:
+`pinned`, `package-registry` or `unverified-upstream`. Run one with
+`evalrouter run BENCHMARK --model MODEL --agent ID` (or `ID@VERSION`, or
+`local:<command>` for any ACP command). An `unverified-upstream` agent needs
+`--allow-unverified`; pass it only when the user accepts an unverified artifact.
 
 The API also accepts immutable `eval://provider/name/version` references.
 Obtain the exact reference from discovery and check its actual coverage and
 compatibility; do not turn a catalog name into a guessed reference.
 
-**2. Run the requested evaluation.** Use the exact profile and model IDs from
-catalog discovery. For a sample comparison, run the models together on the
-same tasks and seed:
+**2. Run the requested evaluation.** Benchmarks and models are names (a slug or
+an unambiguous name; exact IDs also work). `--max-cost USD` is the most the run
+may charge: it starts only when its quote's maximum charge fits under it.
+`--max-cost` is optional: pass it only with a cap the user gave, and never
+choose one yourself. Without it the run is bounded by the workspace's wallet
+balance; say so when you show the quoted price. Without a terminal a paid start
+needs `--yes`; without it nothing is quoted or charged and the command exits 5.
 
 ```sh
-evalrouter run BENCHMARK_PROFILE_ID --model MODEL_ROUTE_A --model MODEL_ROUTE_B --mode matched --sample 25 --seed 42 --yes --json
+evalrouter run gsm8k --model gpt-5 --dry-run --json   # the quote; nothing is charged
+evalrouter run gsm8k --model gpt-5 --sample 25 --seed 42 --yes --json
+evalrouter run gsm8k --model gpt-5 --max-cost 5 --yes --json   # only with a cap the user gave
 ```
 
-For one model, use one `--model`. Respect requested coverage; when the user asks
-for a sample without a size, the CLI default is 25 tasks with seed 42. Do not
-silently replace a full evaluation with a sample. Keep model settings at their
-route defaults unless the user requested an override, and record the settings
-in the comparison. Check `evalrouter run --help` for installed flags. `--yes`
-satisfies the CLI's terminal confirmation for work the user already requested;
-it does not require another conversation turn. `--dry-run` previews without
-starting work when the user asks for a preview or compatibility needs checking.
+Or quote first and start the reviewed quote:
 
-Do not send `--max-cost`, `max_charge_microusd`, `budget_usd` or per-model caps for
-new one-time evaluations. Available wallet credit funds mandatory fees and
-pending operations. If credit cannot back another operation, new work stops
-and results can be partial. An in-flight usage charge may settle above its hold
-and leave the wallet negative, so wallet credit is not a guaranteed maximum.
-Connected providers bill separately. Explain this briefly when relevant; do not
-invent cost estimates, a dollar ceiling or an approval step.
+```sh
+evalrouter quotes create gsm8k --model gpt-5 --json
+evalrouter runs create --quote QUOTE_ID --yes --wait --json
+```
 
-For a multi-benchmark job, use `evalrouter evaluation-jobs --help` and the
-[current CLI documentation](https://evalrouter.ai/developers/docs/cli).
-Preflight resolves the compatible pairs and coverage before launch; use
-`evaluation-jobs start --yes` with a persisted idempotency key for the requested
-work. Explicit provider-cost acknowledgements required by the API still apply.
-If the installed CLI lacks the documented workflow, upgrade it; do not fall
-back to a cap-and-quote flow for a new one-time job. Report unavailable hosted
-features instead of switching environments.
+Respect requested coverage; when the user asks for a sample without a size, the
+CLI default is 25 tasks with seed 42. Do not silently replace a full evaluation
+with a sample. Keep model settings at their route defaults unless the user
+requested an override, and record the settings in the comparison. `--yes`
+satisfies the CLI's confirmation for work the user already requested.
+`--dry-run` prints the quote (maximum charge and plan) and starts nothing.
+Connected providers bill separately; do not invent cost estimates.
 
-**3. Recover and follow progress.** The guided CLI persists the operation key;
-repeating the same command after a dropped response recovers the same work.
-For explicit job starts, save an idempotency key before submitting and reuse the
-same key and body on a transport retry. A new key or `--new` can start separate,
+**3. Recover and follow progress.** Starting a quote is idempotent: repeating the
+same `runs create --quote` (or the same `run` command) after a dropped response
+returns the same run and never starts a second one. `run --new` starts separate,
 separately charged work. Progress counts processed tasks, not a score.
 Interrupting a local wait does not stop server work. Follow an existing run with
-`evalrouter wait RUN_ID` or `evalrouter status RUN_ID`; cancel only when the user
-intends cancellation. Adding credit does not automatically resume unfinished
-work. Do not continue or rerun it unless that is within the user's request;
-uncertain prior external effects require explicit review.
+`evalrouter runs wait RUN_ID` or `evalrouter runs get RUN_ID`; cancel with
+`evalrouter runs cancel RUN_ID` only when the user intends cancellation.
 
-Existing quoted runs retain their frozen terms. Use
-[references/quote-json.md](references/quote-json.md) only for an existing quote
-or an explicitly selected legacy workflow, not as the default launch path.
-
-Exit codes: 0 success; 1 API/transport error or failed run; 2 invalid input or
-rejected request; 4 partial or cancelled waited run; 5 declined confirmation
-with nothing started; 6 local watch disconnected while server work continues.
+Exit codes: 0 success; 1 the API refused the request; 2 invalid command or
+input, nothing sent; 3 the run ended without completing; 4 not signed in or
+credential rejected; 5 a confirmation was needed or the quote exceeds
+`--max-cost`, nothing started; 6 the API was unreachable (server work
+continues); 124 local wait timeout; 130 interrupted.
 
 **4. Results and exports.**
 
 ```sh
-evalrouter results RUN_ID --json
-evalrouter export RUN_ID --version RESULT_VERSION --format html --output result.html
-evalrouter export RUN_ID --version RESULT_VERSION --format json --output result.json
+evalrouter runs results RUN_ID --json
+evalrouter runs export RUN_ID --version RESULT_VERSION --file-format html --output result.html
+evalrouter runs export RUN_ID --version RESULT_VERSION --file-format json --output result.json
 ```
 
-`--format` accepts `json`, `csv` or `html`; recent CLI versions also offer an
-evidence `bundle`. `--output` is optional: without it, the CLI chooses a free
-filename. An explicit existing filename is refused unless `--overwrite` is
-passed. Use the result's integer
-`--version` for repeatable reports and keep it with downstream copies. Report
-terminal status, completed versus missing work, errors and billing state with
-the scores.
+`--file-format` accepts `json`, `csv`, `html` or the evidence `bundle`.
+`--output` is optional: without it, the CLI chooses a free filename. An explicit
+existing filename is refused unless `--overwrite` is passed. Use the result's
+integer `--version` for repeatable reports and keep it with downstream copies.
+Report terminal status, completed versus missing work, errors and billing state
+with the scores.
 
-For compatible model runs, `evalrouter compare RUN_A RUN_B --format html
---output my-comparison` downloads a descriptive comparison without inference.
-Check matching benchmark version, task selection and output format. Keep
-partial and unsettled results visible.
+For compatible model runs, `evalrouter comparisons report RUN_A RUN_B
+--file-format html --output my-comparison` downloads a descriptive comparison
+without inference. Check matching benchmark version, task selection and output
+format. Keep partial and unsettled results visible.
 
 ## C. Bring or publish a benchmark
 
@@ -263,7 +266,7 @@ the report contents and the command.
 - **Reportable:** after basic local checks (flags match `--help`, identifiers
   came from discovery in this workspace, `evalrouter whoami` shows the intended
   sign-in), the CLI or API contradicts documented behavior. Examples: an exact
-  route ID just returned by `evalrouter catalog --models` is rejected as
+  route ID just returned by `evalrouter models list` is rejected as
   `ambiguous_model`; an internal server error; a CLI crash, traceback or
   unparseable response; docs that contradict the shipped command.
 - **Not a defect by itself:** signed out, insufficient credit, a validation

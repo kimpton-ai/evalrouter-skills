@@ -7,27 +7,25 @@
 > [private-benchmark.md](private-benchmark.md) for a workspace-private
 > benchmark where enabled.
 
-> **Version gate.** The `benchmark` command group is newer than some
-> 0.2.0 builds. Run `evalrouter benchmark --help`; if it is not recognised,
-> stop and tell the user their installed CLI does not support benchmark
-> publishing yet. Do not fall back to raw HTTP.
+> **Availability gate.** Run `evalrouter benchmarks --help`. The network
+> commands (`submit`, `status`, `inspect`, `grant`, `revoke`) appear only in
+> builds where supplier publishing is enabled; the public release lists only
+> `init`, `validate` and `bundle`. If `submit` is not listed, stop after
+> bundling and tell the user that submission is not available to them yet. Do
+> not fall back to raw HTTP.
 
-## 1. Install the offline extra
+## 1. Install
 
-`init`, `validate` and `bundle` need the version-matched validator extra. The
-network commands (`submit`, `status`, `inspect`, `grant`, `revoke`) do not.
+`init`, `validate` and `bundle` run offline with the base installation:
 
 ```sh
-uv tool install --python 3.12 "evalrouter[benchmark]"
+uv tool install --python 3.12 evalrouter
 ```
-
-Without it those three commands stop with `benchmark_extra_required` and print
-the exact install string to use.
 
 ## 2. Draft
 
 ```sh
-evalrouter benchmark init ./my-benchmark --namespace NAMESPACE --name my-benchmark --template text
+evalrouter benchmarks init ./my-benchmark --namespace NAMESPACE --name my-benchmark --template text
 ```
 
 `--namespace` and `--name` are required. `--template` is `text` (default,
@@ -52,7 +50,7 @@ maintainer, `rights` entries (the draft uses `LicenseRef-NotGranted` and
 limitations, and review the `"synthetic": true` flag once the content is real
 (check the current docs or `validate` output for how it is treated).
 
-This supplier **package** workflow uses local files; `benchmark import` is a
+This supplier **package** workflow uses local files; `benchmarks imports huggingface` is a
 separate workspace-private Hugging Face source flow and does not fill a
 supplier package. If the supplier has only a dataset URL, help them prepare
 local package material after checking its license. Never include credentials
@@ -61,8 +59,8 @@ or private customer data.
 ## 3. Validate and bundle (offline)
 
 ```sh
-evalrouter benchmark validate ./my-benchmark
-evalrouter benchmark bundle ./my-benchmark --output my-benchmark.zip
+evalrouter benchmarks validate ./my-benchmark
+evalrouter benchmarks bundle ./my-benchmark --output my-benchmark.zip
 ```
 
 Nothing is executed or sent. `validate` reports validity, package and component
@@ -80,22 +78,21 @@ before obtaining the human's submission approval. Submission does not approve
 any later evaluation charge.
 
 ```sh
-evalrouter benchmark submit my-benchmark.zip --wait
+evalrouter benchmarks submit my-benchmark.zip --wait
 ```
 
-The upload is resumable: by default the idempotency key derives from the bundle
-digest, so re-running submit on the same file resumes rather than duplicates.
-`--idempotency-key` overrides it. With `--wait`, the CLI polls preparation until
+The upload is resumable: the idempotency key derives from the bundle digest, so
+re-running submit on the same file resumes rather than duplicates. With `--wait`, the CLI polls preparation until
 `succeeded`, `failed` or `cancelled` (exit 0, 1, 4). Interrupting the wait cancels
 nothing on the server. Accepted preparation is not qualification or admission.
 
 ## 5. Inspect and share
 
 ```sh
-evalrouter benchmark status PACKAGE_ID
-evalrouter benchmark inspect PACKAGE_ID
-evalrouter benchmark grant PACKAGE_ID --workspace GRANTEE_WORKSPACE_ID --reason "Shared for evaluation" --permissions discover,execute
-evalrouter benchmark revoke PACKAGE_ID --workspace GRANTEE_WORKSPACE_ID --reason "Access ended"
+evalrouter benchmarks status PACKAGE_ID
+evalrouter benchmarks inspect PACKAGE_ID
+evalrouter benchmarks grant PACKAGE_ID --workspace GRANTEE_WORKSPACE_ID --reason "Shared for evaluation" --permissions discover,execute
+evalrouter benchmarks revoke PACKAGE_ID --workspace GRANTEE_WORKSPACE_ID --reason "Access ended"
 ```
 
 `status` shows the package lifecycle; `inspect` shows the compiled protocol
@@ -104,6 +101,6 @@ issued against the compiled protocol for one grantee workspace, with a recorded
 reason. `--permissions` is `discover`, `execute` or both (default both).
 Revoking blocks new quotes from that workspace.
 
-Once qualified and granted, the benchmark appears through `evalrouter catalog`
+Once qualified and granted, the benchmark appears through `evalrouter benchmarks list`
 for permitted workspaces and runs with the normal
 wallet-funded evaluation flow in SKILL.md section B.

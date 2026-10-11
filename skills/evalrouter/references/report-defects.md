@@ -36,14 +36,14 @@ Write the report text yourself, briefly:
   ambiguous_model".
 - **Details** (at most 5,000 characters): the public command shape with
   placeholders instead of the user's arguments
-  (`evalrouter quote --config FILE`), what the docs say should happen, what
+  (`evalrouter quotes create --body FILE`), what the docs say should happen, what
   happened instead, and the checks you already made. Describe values by role,
-  never by content: "an exact route ID returned by catalog discovery", not the
+  never by content: "an exact route ID returned by `models list`", not the
   ID itself. For example:
 
   ```text
-  Command: evalrouter quote --config FILE (managed route_id, sample coverage)
-  Expected: an exact route ID returned by catalog discovery is accepted.
+  Command: evalrouter quotes create --body FILE (managed route_id, sample coverage)
+  Expected: an exact route ID returned by models list is accepted.
   Observed: HTTP 409 ambiguous_model.
   Checked: flags match --help; route ID copied from discovery in this
   workspace; whoami shows the intended sign-in.

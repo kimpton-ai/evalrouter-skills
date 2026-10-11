@@ -8,7 +8,11 @@
 
 Usage (needs httpx and PyYAML, e.g. via uv):
     uv run --with httpx --with pyyaml --with rich python scripts/validate.py \
-        --cli /path/to/kimpton-evalrouter/packages/python/public/cli.py
+        --cli /path/to/kimpton-evalrouter/packages/python-cli/src/kimpton_evalrouter/cli.py
+
+Run it with the kimpton-evalrouter checkout's Python so the CLI's dependencies
+import (e.g. `uv run --directory /path/to/kimpton-evalrouter --with pyyaml python
+/path/to/evalrouter-skills/scripts/validate.py --cli ...`).
 
 The CLI is imported only to build its parser; no command is executed and no
 network request is made.
@@ -113,6 +117,15 @@ def load_parser(cli_path: Path) -> argparse.ArgumentParser:
     import shutil
     import tempfile
 
+    if cli_path.parent.name == "kimpton_evalrouter":
+        # Current layout: packages/python-cli/src/kimpton_evalrouter/cli.py, imported
+        # from the kimpton-evalrouter checkout's environment (uv run there).
+        sys.path.insert(0, str(cli_path.parent.parent))
+        import kimpton_evalrouter  # noqa: E402
+        from kimpton_evalrouter import cli  # noqa: E402
+
+        print(f"     CLI version {kimpton_evalrouter.__version__} from {cli_path}")
+        return cli.parser()
     public = cli_path.parent
     generated = public.parent / "src" / "kimpton_evalrouter"
     staging = Path(tempfile.mkdtemp()) / "kimpton_evalrouter"
@@ -207,7 +220,7 @@ def check_commands(cli: Path, files: list[Path]) -> None:
 
 def main() -> int:
     arguments = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    arguments.add_argument("--cli", required=True, type=Path, help="Path to public/cli.py")
+    arguments.add_argument("--cli", required=True, type=Path, help="Path to the CLI's cli.py")
     args = arguments.parse_args()
     check_manifests()
     skills = check_frontmatter()
