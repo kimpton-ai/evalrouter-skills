@@ -61,7 +61,7 @@ kimpton-evalrouter; edit it there and copy it here with rsync (see that repo's
 
 ```bash
 uv venv /tmp/evalrouter-cli && uv pip install --python /tmp/evalrouter-cli/bin/python \
-  evalrouter==RELEASED_VERSION pyyaml
+  evalrouter==0.5.0 pyyaml  # the released version
 /tmp/evalrouter-cli/bin/python scripts/validate.py --cli \
   "$(/tmp/evalrouter-cli/bin/python -c 'import kimpton_evalrouter.cli as c; print(c.__file__)')"
 ```

@@ -6,13 +6,8 @@
 3. Every `evalrouter ...` command mentioned in the skill Markdown exists in the
    shipped CLI's argparse tree, including each `--flag` used with it.
 
-Usage (needs httpx and PyYAML, e.g. via uv):
-    uv run --with httpx --with pyyaml --with rich python scripts/validate.py \
-        --cli /path/to/kimpton-evalrouter/packages/python-cli/src/kimpton_evalrouter/cli.py
-
-Run it with the kimpton-evalrouter checkout's Python so the CLI's dependencies
-import (e.g. `uv run --directory /path/to/kimpton-evalrouter --with pyyaml python
-/path/to/evalrouter-skills/scripts/validate.py --cli ...`).
+Usage: install the published CLI and PyYAML in one environment and pass that
+environment's kimpton_evalrouter/cli.py as --cli (README, "Development").
 
 The CLI is imported only to build its parser; no command is executed and no
 network request is made.
@@ -107,32 +102,8 @@ def check_frontmatter() -> list[Path]:
 
 
 def load_parser(cli_path: Path) -> argparse.ArgumentParser:
-    """Build the shipped parser from public/ overlaid on the generated SDK sources.
-
-    public/ holds the hand-written published modules (cli.py, __init__.py, ...);
-    the generated ones (types.py, _resources.py, _transport.py) live in
-    src/kimpton_evalrouter/. Both are copied into a temporary package so that
-    public/cli.py is imported exactly as shipped.
-    """
-    import shutil
-    import tempfile
-
-    if cli_path.parent.name == "kimpton_evalrouter":
-        # Current layout: packages/python-cli/src/kimpton_evalrouter/cli.py, imported
-        # from the kimpton-evalrouter checkout's environment (uv run there).
-        sys.path.insert(0, str(cli_path.parent.parent))
-        import kimpton_evalrouter  # noqa: E402
-        from kimpton_evalrouter import cli  # noqa: E402
-
-        print(f"     CLI version {kimpton_evalrouter.__version__} from {cli_path}")
-        return cli.parser()
-    public = cli_path.parent
-    generated = public.parent / "src" / "kimpton_evalrouter"
-    staging = Path(tempfile.mkdtemp()) / "kimpton_evalrouter"
-    shutil.copytree(generated, staging)
-    for module in public.glob("*.py"):
-        shutil.copy2(module, staging / module.name)
-    sys.path.insert(0, str(staging.parent))
+    """Import the CLI at `.../kimpton_evalrouter/cli.py` and return its parser."""
+    sys.path.insert(0, str(cli_path.parent.parent))
     import kimpton_evalrouter  # noqa: E402
     from kimpton_evalrouter import cli  # noqa: E402
 
