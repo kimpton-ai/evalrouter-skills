@@ -7,12 +7,10 @@
 > [private-benchmark.md](private-benchmark.md) for a workspace-private
 > benchmark where enabled.
 
-> **Availability gate.** Run `evalrouter benchmarks --help`. The network
-> commands (`submit`, `status`, `inspect`, `grant`, `revoke`) appear only in
-> builds where supplier publishing is enabled; the public release lists only
-> `init`, `validate` and `bundle`. If `submit` is not listed, stop after
-> bundling and tell the user that submission is not available to them yet. Do
-> not fall back to raw HTTP.
+> **Availability.** The public CLI drafts, validates and bundles a package
+> offline (`init`, `validate`, `bundle`). It cannot submit, inspect or share
+> one. Stop after bundling and tell the user that submission is not available
+> in the public CLI. Do not fall back to raw HTTP.
 
 ## 1. Install
 
@@ -66,41 +64,12 @@ evalrouter benchmarks bundle ./my-benchmark --output my-benchmark.zip
 Nothing is executed or sent. `validate` reports validity, package and component
 SHA-256, task count and warnings. After editing files, file-table hashes in
 `evalrouter.json` must match; re-run `validate` until it passes. `bundle` never
-overwrites an existing `--output`. Local validation is not platform admission.
+overwrites an existing `--output`.
 
-## 4. Submit (network, needs approval)
+## 4. After bundling
 
-Requirements: sign in to the intended workspace (browser sign-in by default,
-or a scoped API key for explicit automation) and confirm a **verified
-namespace** there whose slug equals the package's `namespace` (otherwise
-`namespace_not_found`). Review the package and any server-side cost or work
-before obtaining the human's submission approval. Submission does not approve
-any later evaluation charge.
-
-```sh
-evalrouter benchmarks submit my-benchmark.zip --wait
-```
-
-The upload is resumable: the idempotency key derives from the bundle digest, so
-re-running submit on the same file resumes rather than duplicates. With `--wait`, the CLI polls preparation until
-`succeeded`, `failed` or `cancelled` (exit 0, 1, 4). Interrupting the wait cancels
-nothing on the server. Accepted preparation is not qualification or admission.
-
-## 5. Inspect and share
-
-```sh
-evalrouter benchmarks status PACKAGE_ID
-evalrouter benchmarks inspect PACKAGE_ID
-evalrouter benchmarks grant PACKAGE_ID --workspace GRANTEE_WORKSPACE_ID --reason "Shared for evaluation" --permissions discover,execute
-evalrouter benchmarks revoke PACKAGE_ID --workspace GRANTEE_WORKSPACE_ID --reason "Access ended"
-```
-
-`status` shows the package lifecycle; `inspect` shows the compiled protocol
-(protocol and component digests, compiler version, execution class). Grants are
-issued against the compiled protocol for one grantee workspace, with a recorded
-reason. `--permissions` is `discover`, `execute` or both (default both).
-Revoking blocks new quotes from that workspace.
-
-Once qualified and granted, the benchmark appears through `evalrouter benchmarks list`
-for permitted workspaces and runs with the normal
+Stop here. Report the bundle path, the package SHA-256 and task count from
+`validate`, and any warnings. A bundle is not submitted, qualified or admitted.
+Once the EvalRouter team qualifies and grants a package, it appears in
+`evalrouter benchmarks list` for permitted workspaces and runs with the normal
 wallet-funded evaluation flow in SKILL.md section B.

@@ -55,14 +55,20 @@ the skill never asks you to paste credentials into chat.
 
 ## Development
 
+`skills/evalrouter` is a published copy of `apps/web/content/skill` in
+kimpton-evalrouter; edit it there and copy it here with rsync (see that repo's
+`docs/PUBLIC-DOCUMENTATION.md`). Validate against the published CLI release:
+
 ```bash
-uv run --no-project --python 3.12 --with httpx==0.28.1 --with pyyaml --with rich \
-  python scripts/validate.py --cli PATH/TO/kimpton-evalrouter/packages/python/public/cli.py
+uv venv /tmp/evalrouter-cli && uv pip install --python /tmp/evalrouter-cli/bin/python \
+  evalrouter==RELEASED_VERSION pyyaml
+/tmp/evalrouter-cli/bin/python scripts/validate.py --cli \
+  "$(/tmp/evalrouter-cli/bin/python -c 'import kimpton_evalrouter.cli as c; print(c.__file__)')"
 ```
 
 Checks that the JSON manifests parse, the SKILL.md frontmatter is valid YAML,
-and every evalrouter command mentioned in the skill exists in the CLI's
-argparse definition.
+and every evalrouter command and flag mentioned in the skill exists in the
+published CLI. It must report 0 problems.
 
 ## License
 

@@ -12,7 +12,8 @@ are rejected. Never put credentials in it. Start a reviewed quote with
 
 | Field | Required | Shape |
 | --- | --- | --- |
-| `model` | yes | Target model, see below |
+| `model` | yes, unless `subjects` | Target model, see below |
+| `subjects` | no | 2 to 8 models on the same tasks in one run, instead of `model`: `[{"model": MODEL}, ...]` with each `MODEL` as below |
 | `selection` | yes | What to evaluate, see below |
 | `coverage` | no | `{"mode": "sample", "sample_count": N, "seed": S}` or `{"mode": "full"}` |
 | `max_charge_microusd` | no | Spending cap as a string of integer micro-USD. `"1000000"` = $1. Omitted: the run is bounded by the wallet |
@@ -83,9 +84,11 @@ The API field is `output_format`; the CLI flag is `--output-format`.
 ## Reading the response
 
 Top-level fields include `id`, `expires_at`, `plan`, `max_charge_microusd`,
-`price_version` and `retention`. The cap is `max_charge_microusd`; actual
-charges follow usage and cannot exceed it. Do not present pre-run cost
-estimates or forecasts, even if a response still contains such fields.
-Summarise compatibility, warnings, coverage, the frozen cap, external charges,
-concurrency and expiry. Run only within the user's requested scope; a request to
+`price_version` and `retention`. When the request set a cap,
+`max_charge_microusd` is that cap: actual charges follow usage and cannot
+exceed it. When it is `null`, the run is wallet-funded: it has no dollar cap
+and is bounded by the workspace's available credit (and the API key's spend
+ceiling); say so. Do not present pre-run cost estimates or forecasts, even if
+a response still contains such fields. Summarise compatibility, warnings,
+coverage, the cap or wallet funding, external charges, concurrency and expiry. Run only within the user's requested scope; a request to
 run the evaluation does not require a separate quote-approval turn.

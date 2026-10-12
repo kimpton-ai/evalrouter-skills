@@ -88,7 +88,10 @@ evalrouter --help
 ```
 
 If the shell cannot find `evalrouter`, run `uv tool update-shell` and restart the
-terminal. Upgrade with `uv tool upgrade evalrouter`.
+terminal. Upgrade with `uv tool upgrade evalrouter`. If a command fails with
+`client_upgrade_required`, the installed CLI is older than the API serves:
+run `evalrouter upgrade` (or the upgrade command the CLI prints), then repeat
+the command. Nothing was run or charged.
 
 Start with `evalrouter whoami`. If it reports that the user is signed out,
 run the browser sign-in command and keep it running while the user approves:
@@ -156,8 +159,10 @@ it with `--key-stdin`, or names an env var with `--key-env`; rotate later with
 `evalrouter connections update CONNECTION_ID --rotate-key`), then
 `evalrouter connections check CONNECTION_ID` before evaluation. A check can send a
 small model request that their provider bills. A remote agent is a connection
-with `--protocol a2a`; run it with `evalrouter run BENCHMARK --agent
-remote:CONNECTION_NAME`.
+with `--protocol a2a`; run it with `evalrouter run BENCHMARK --model MODEL
+--agent remote:CONNECTION_NAME`. If the agent calls a model through the run's
+metered gateway, add `--agent-gateway-api chat_completions`; `--model` is that
+model, and its calls are charged to the run.
 
 To evaluate an agent on this machine, `evalrouter agents list` shows the ACP
 Registry agents (offline, from the bundled snapshot) with their integrity:
@@ -175,8 +180,11 @@ an unambiguous name; exact IDs also work). `--max-cost USD` is the most the run
 may charge: it starts only when its quote's maximum charge fits under it.
 `--max-cost` is optional: pass it only with a cap the user gave, and never
 choose one yourself. Without it the run is bounded by the workspace's wallet
-balance; say so when you show the quoted price. Without a terminal a paid start
-needs `--yes`; without it nothing is quoted or charged and the command exits 5.
+balance (`evalrouter credits` shows it); say so when you show the quoted price.
+Start with `--yes` and report the quoted maximum charge from its output; use
+`--dry-run` only when the user asks for a price.
+Without a terminal a paid start needs `--yes`; without it nothing is quoted or
+charged and the command exits 5.
 
 ```sh
 evalrouter run gsm8k --model gpt-5 --dry-run --json   # the quote; nothing is charged
@@ -184,12 +192,29 @@ evalrouter run gsm8k --model gpt-5 --sample 25 --seed 42 --yes --json
 evalrouter run gsm8k --model gpt-5 --max-cost 5 --yes --json   # only with a cap the user gave
 ```
 
+To compare models, run them together: one quote, one cap (or the wallet), the
+same tasks. `runs compare` ranks them on the tasks every model finished;
+pairwise detail is in the JSON:
+
+```sh
+evalrouter run gsm8k --model gpt-5 --model claude-sonnet-5 --dry-run --json
+evalrouter runs compare RUN_ID --json
+```
+
+A run stopped by its cap, the user's credit or a cancellation has `interruption`
+with the reason. `evalrouter runs continue RUN_ID --yes --json` quotes and starts
+only its unfinished tasks; finished ones are not charged again. Continue only
+when the user asks to.
+
 Or quote first and start the reviewed quote:
 
 ```sh
 evalrouter quotes create gsm8k --model gpt-5 --json
 evalrouter runs create --quote QUOTE_ID --yes --wait --json
 ```
+
+For a JSON request body (`quotes create --body FILE`), see
+[references/quote-json.md](references/quote-json.md).
 
 Respect requested coverage; when the user asks for a sample without a size, the
 CLI default is 25 tasks with seed 42. Do not silently replace a full evaluation
@@ -228,7 +253,8 @@ integer `--version` for repeatable reports and keep it with downstream copies.
 Report terminal status, completed versus missing work, errors and billing state
 with the scores.
 
-For compatible model runs, `evalrouter comparisons report RUN_A RUN_B
+For separate single-model runs (a multi-model run uses `runs compare`),
+`evalrouter comparisons report RUN_A RUN_B
 --file-format html --output my-comparison` downloads a descriptive comparison
 without inference. Check matching benchmark version, task selection and output
 format. Keep partial and unsettled results visible.
@@ -252,8 +278,9 @@ Choose the flow that matches the user's goal and the target environment:
    Preparation does not add or admit the benchmark; the EvalRouter team
    reviews it.
 3. **Onboarded supplier with a verified namespace:** use the separate
-   [package publishing workflow](references/publish-benchmark.md). Local
-   validation and server submission are not platform admission.
+   [package publishing workflow](references/publish-benchmark.md). The public
+   CLI drafts, validates and bundles a package; none of that is platform
+   admission.
 
 ## Feedback
 
