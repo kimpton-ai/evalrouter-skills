@@ -6,9 +6,8 @@
 3. Every `evalrouter ...` command mentioned in the skill Markdown exists in the
    shipped CLI's argparse tree, including each `--flag` used with it.
 
-Usage (needs httpx and PyYAML, e.g. via uv):
-    uv run --with httpx --with pyyaml --with rich python scripts/validate.py \
-        --cli /path/to/kimpton-evalrouter/packages/python/public/cli.py
+Usage: install the published CLI and PyYAML in one environment and pass that
+environment's kimpton_evalrouter/cli.py as --cli (README, "Development").
 
 The CLI is imported only to build its parser; no command is executed and no
 network request is made.
@@ -103,23 +102,8 @@ def check_frontmatter() -> list[Path]:
 
 
 def load_parser(cli_path: Path) -> argparse.ArgumentParser:
-    """Build the shipped parser from public/ overlaid on the generated SDK sources.
-
-    public/ holds the hand-written published modules (cli.py, __init__.py, ...);
-    the generated ones (types.py, _resources.py, _transport.py) live in
-    src/kimpton_evalrouter/. Both are copied into a temporary package so that
-    public/cli.py is imported exactly as shipped.
-    """
-    import shutil
-    import tempfile
-
-    public = cli_path.parent
-    generated = public.parent / "src" / "kimpton_evalrouter"
-    staging = Path(tempfile.mkdtemp()) / "kimpton_evalrouter"
-    shutil.copytree(generated, staging)
-    for module in public.glob("*.py"):
-        shutil.copy2(module, staging / module.name)
-    sys.path.insert(0, str(staging.parent))
+    """Import the CLI at `.../kimpton_evalrouter/cli.py` and return its parser."""
+    sys.path.insert(0, str(cli_path.parent.parent))
     import kimpton_evalrouter  # noqa: E402
     from kimpton_evalrouter import cli  # noqa: E402
 
@@ -207,7 +191,7 @@ def check_commands(cli: Path, files: list[Path]) -> None:
 
 def main() -> int:
     arguments = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    arguments.add_argument("--cli", required=True, type=Path, help="Path to public/cli.py")
+    arguments.add_argument("--cli", required=True, type=Path, help="Path to the CLI's cli.py")
     args = arguments.parse_args()
     check_manifests()
     skills = check_frontmatter()

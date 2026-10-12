@@ -15,16 +15,16 @@ What you can do for the user is:
 
 Never say a benchmark "has been added", "is submitted" or "will be available"
 because you prepared it. It becomes runnable only when it shows up in
-`evalrouter catalog` for their workspace with `quote_availability.status` =
+`evalrouter benchmarks list` for their workspace with `quote_availability.status` =
 `ready_for_quote`.
 
 ## 1. Is it already in the catalog?
 
 ```sh
-evalrouter catalog --query "BENCHMARK NAME" --json
-evalrouter catalog --slug BENCHMARK_SLUG --json
-evalrouter catalog --runner lm-eval --json
-evalrouter catalog --runner inspect --json
+evalrouter benchmarks list --query "BENCHMARK NAME" --json
+evalrouter benchmarks get BENCHMARK_SLUG --json
+evalrouter benchmarks list --runner lm-eval --json
+evalrouter benchmarks list --runner inspect --json
 ```
 
 If a matching profile is `ready_for_quote`, stop here and use the normal
@@ -190,7 +190,7 @@ The user sends it. Do not send email for them unless they ask and you have a
 tool for it. Adding the benchmark is a reviewed decision by the EvalRouter
 team; it can be declined, and there is no timeline to promise.
 
-After it is added, it appears in `evalrouter catalog`. Running it is ordinary
+After it is added, it appears in `evalrouter benchmarks list`. Running it is ordinary
 paid work using available wallet credit when requested by the user
 (SKILL.md section B).
 

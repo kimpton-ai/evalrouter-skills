@@ -1,29 +1,29 @@
-# Legacy quote.json reference
+# Quote request body reference
 
-Use this reference only for existing quoted runs or an explicitly selected
-legacy workflow. New one-time evaluations use wallet credit without quotes or
-customer caps; follow [SKILL.md](../SKILL.md) section B.
+Most evaluations need only the flags in [SKILL.md](../SKILL.md) section B. Use
+this reference when you write the quote request yourself.
 
-
-`evalrouter quote --config FILE` (or `--config -` for stdin) sends one JSON object,
-the API's `NewQuote` request. Unknown fields are rejected. The file is capped at
-256 KiB. Never put credentials in it.
+`evalrouter quotes create --body FILE` (or `--body -` for stdin) sends one JSON
+object, the API's `NewQuote` request; flags override its fields. Unknown fields
+are rejected. Never put credentials in it. Start a reviewed quote with
+`evalrouter runs create --quote QUOTE_ID --yes`.
 
 ## Fields
 
 | Field | Required | Shape |
 | --- | --- | --- |
-| `model` | yes | Target model, see below |
+| `model` | yes, unless `subjects` | Target model, see below |
+| `subjects` | no | 2 to 8 models on the same tasks in one run, instead of `model`: `[{"model": MODEL}, ...]` with each `MODEL` as below |
 | `selection` | yes | What to evaluate, see below |
 | `coverage` | no | `{"mode": "sample", "sample_count": N, "seed": S}` or `{"mode": "full"}` |
-| `max_charge_microusd` | yes | Spending cap as a string of integer micro-USD, `"1"` to 12 digits. `"1000000"` = $1 |
+| `max_charge_microusd` | no | Spending cap as a string of integer micro-USD. `"1000000"` = $1. Omitted: the run is bounded by the wallet |
 | `concurrency` | no | `"auto"`, `"max"` or an integer 1 to 100 (see below) |
 | `output_format` | no | `"default"`, `"leaderboard"`, `"prompt_json"`, `"native_json"` or `"json_schema"`; supported formats depend on the exact benchmark version and model route |
 
 ### `model`
 
 ```json
-{"kind": "managed", "route_id": "ROUTE_ID_FROM_catalog_--models"}
+{"kind": "managed", "route_id": "ROUTE_ID_FROM_models_list"}
 ```
 
 ```json
@@ -37,7 +37,7 @@ the EvalRouter cap.
 ### `selection`
 
 - Benchmark profiles (the common case): `{"profile_ids": ["PROFILE_ID", ...]}`,
-  1 to 50 IDs, each from `evalrouter catalog --slug SLUG` with
+  1 to 50 IDs, each from `evalrouter benchmarks get SLUG` with
   `quote_availability.status` = `ready_for_quote`.
 - A suite version: `{"suite_version_id": "UUID"}`.
 - A universal evaluation reference: `{"eval": "eval://provider/name/version"}`.
@@ -66,15 +66,13 @@ reports the admitted run ceiling and per-profile ceilings with reasons:
 
 Some execution pathways reject any `concurrency` value with
 `concurrency_unsupported`; omit the field there.
-Requires a CLI build whose `evalrouter quote --help` lists `--concurrency`.
 
 ### `output_format`
 
 The quote freezes the chosen output format. A benchmark with a fixed format
 refuses an override, and `leaderboard` refuses a model route that does not
 declare that format. Results from different formats are not ranked together.
-Check `evalrouter quote --help` for CLI support; the API field is
-`output_format`, while the CLI override is `--format`.
+The API field is `output_format`; the CLI flag is `--output-format`.
 
 ## Common quote refusals
 
@@ -86,9 +84,11 @@ Check `evalrouter quote --help` for CLI support; the API field is
 ## Reading the response
 
 Top-level fields include `id`, `expires_at`, `plan`, `max_charge_microusd`,
-`price_version` and `retention`. The cap is `max_charge_microusd`; actual
-charges follow usage and cannot exceed it. Do not present pre-run cost
-estimates or forecasts, even if a response still contains such fields.
-Summarise compatibility, warnings, coverage, the frozen cap, external charges,
-concurrency and expiry. Run only within the user's requested scope; a request to
+`price_version` and `retention`. When the request set a cap,
+`max_charge_microusd` is that cap: actual charges follow usage and cannot
+exceed it. When it is `null`, the run is wallet-funded: it has no dollar cap
+and is bounded by the workspace's available credit (and the API key's spend
+ceiling); say so. Do not present pre-run cost estimates or forecasts, even if
+a response still contains such fields. Summarise compatibility, warnings,
+coverage, the cap or wallet funding, external charges, concurrency and expiry. Run only within the user's requested scope; a request to
 run the evaluation does not require a separate quote-approval turn.

@@ -7,27 +7,23 @@
 > [private-benchmark.md](private-benchmark.md) for a workspace-private
 > benchmark where enabled.
 
-> **Version gate.** The `benchmark` command group is newer than some
-> 0.2.0 builds. Run `evalrouter benchmark --help`; if it is not recognised,
-> stop and tell the user their installed CLI does not support benchmark
-> publishing yet. Do not fall back to raw HTTP.
+> **Availability.** The public CLI drafts, validates and bundles a package
+> offline (`init`, `validate`, `bundle`). It cannot submit, inspect or share
+> one. Stop after bundling and tell the user that submission is not available
+> in the public CLI. Do not fall back to raw HTTP.
 
-## 1. Install the offline extra
+## 1. Install
 
-`init`, `validate` and `bundle` need the version-matched validator extra. The
-network commands (`submit`, `status`, `inspect`, `grant`, `revoke`) do not.
+`init`, `validate` and `bundle` run offline with the base installation:
 
 ```sh
-uv tool install --python 3.12 "evalrouter[benchmark]"
+uv tool install --python 3.12 evalrouter
 ```
-
-Without it those three commands stop with `benchmark_extra_required` and print
-the exact install string to use.
 
 ## 2. Draft
 
 ```sh
-evalrouter benchmark init ./my-benchmark --namespace NAMESPACE --name my-benchmark --template text
+evalrouter benchmarks init ./my-benchmark --namespace NAMESPACE --name my-benchmark --template text
 ```
 
 `--namespace` and `--name` are required. `--template` is `text` (default,
@@ -52,7 +48,7 @@ maintainer, `rights` entries (the draft uses `LicenseRef-NotGranted` and
 limitations, and review the `"synthetic": true` flag once the content is real
 (check the current docs or `validate` output for how it is treated).
 
-This supplier **package** workflow uses local files; `benchmark import` is a
+This supplier **package** workflow uses local files; `benchmarks imports huggingface` is a
 separate workspace-private Hugging Face source flow and does not fill a
 supplier package. If the supplier has only a dataset URL, help them prepare
 local package material after checking its license. Never include credentials
@@ -61,49 +57,19 @@ or private customer data.
 ## 3. Validate and bundle (offline)
 
 ```sh
-evalrouter benchmark validate ./my-benchmark
-evalrouter benchmark bundle ./my-benchmark --output my-benchmark.zip
+evalrouter benchmarks validate ./my-benchmark
+evalrouter benchmarks bundle ./my-benchmark --output my-benchmark.zip
 ```
 
 Nothing is executed or sent. `validate` reports validity, package and component
 SHA-256, task count and warnings. After editing files, file-table hashes in
 `evalrouter.json` must match; re-run `validate` until it passes. `bundle` never
-overwrites an existing `--output`. Local validation is not platform admission.
+overwrites an existing `--output`.
 
-## 4. Submit (network, needs approval)
+## 4. After bundling
 
-Requirements: sign in to the intended workspace (browser sign-in by default,
-or a scoped API key for explicit automation) and confirm a **verified
-namespace** there whose slug equals the package's `namespace` (otherwise
-`namespace_not_found`). Review the package and any server-side cost or work
-before obtaining the human's submission approval. Submission does not approve
-any later evaluation charge.
-
-```sh
-evalrouter benchmark submit my-benchmark.zip --wait
-```
-
-The upload is resumable: by default the idempotency key derives from the bundle
-digest, so re-running submit on the same file resumes rather than duplicates.
-`--idempotency-key` overrides it. With `--wait`, the CLI polls preparation until
-`succeeded`, `failed` or `cancelled` (exit 0, 1, 4). Interrupting the wait cancels
-nothing on the server. Accepted preparation is not qualification or admission.
-
-## 5. Inspect and share
-
-```sh
-evalrouter benchmark status PACKAGE_ID
-evalrouter benchmark inspect PACKAGE_ID
-evalrouter benchmark grant PACKAGE_ID --workspace GRANTEE_WORKSPACE_ID --reason "Shared for evaluation" --permissions discover,execute
-evalrouter benchmark revoke PACKAGE_ID --workspace GRANTEE_WORKSPACE_ID --reason "Access ended"
-```
-
-`status` shows the package lifecycle; `inspect` shows the compiled protocol
-(protocol and component digests, compiler version, execution class). Grants are
-issued against the compiled protocol for one grantee workspace, with a recorded
-reason. `--permissions` is `discover`, `execute` or both (default both).
-Revoking blocks new quotes from that workspace.
-
-Once qualified and granted, the benchmark appears through `evalrouter catalog`
-for permitted workspaces and runs with the normal
+Stop here. Report the bundle path, the package SHA-256 and task count from
+`validate`, and any warnings. A bundle is not submitted, qualified or admitted.
+Once the EvalRouter team qualifies and grants a package, it appears in
+`evalrouter benchmarks list` for permitted workspaces and runs with the normal
 wallet-funded evaluation flow in SKILL.md section B.
